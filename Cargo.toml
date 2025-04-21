@@ -1,0 +1,19 @@
+[package]
+
+name = "astro-math"
+version = "0.0.1"
+edition = "2021"
+authors = ["@gaker"]
+license = "MIT OR Apache-2.0"
+
+repository = "https://www.github.com/gaker/astro-math"
+readme = "README.md"
+description = "Astronomy math algorithms for telescope control and sky transforms"
+keywords = ["astronomy", "astrometry", "sidereal", "astrophysics", "coordinates"]
+categories = ["science", "aerospace", "data-structures"]
+
+[dependencies]
+chrono = { version = "0.4", features = ["clock"] }
+
+[dev-dependencies]
+approx = "0.5"
