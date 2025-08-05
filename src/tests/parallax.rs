@@ -1,5 +1,5 @@
 use crate::parallax::*;
-use crate::Location;
+use crate::*;
 use chrono::{TimeZone, Utc};
 
 #[test]
@@ -64,4 +64,37 @@ fn test_annual_parallax_maximum() {
     // The variation should be measurable
     let total_variation = ((ra1 - ra2).powi(2) + (dec1 - dec2).powi(2)).sqrt();
     assert!(total_variation > 0.00001);
+}
+
+#[test]
+fn test_parallax_normalization() {
+    // Test RA normalization in parallax
+    let dt = Utc.with_ymd_and_hms(2024, 8, 4, 22, 0, 0).unwrap();
+    let location = Location {
+        latitude_deg: 89.0, // Near pole to trigger edge cases
+        longitude_deg: -180.0,
+        altitude_m: 0.0,
+    };
+    
+    // Test with RA near 0/360 boundary
+    let (ra1, _) = diurnal_parallax(359.9, 45.0, 0.1, dt, &location);
+    assert!(ra1 >= 0.0 && ra1 < 360.0);
+    
+    let (ra2, _) = diurnal_parallax(0.1, 45.0, 0.1, dt, &location);
+    assert!(ra2 >= 0.0 && ra2 < 360.0);
+}
+
+#[test]
+fn test_parallax_ra_else_branch() {
+    // Test the else branch in parallax RA normalization
+    let dt = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
+    let location = Location {
+        latitude_deg: 0.0,
+        longitude_deg: 0.0,
+        altitude_m: 0.0,
+    };
+    
+    // Test with RA that doesn't need normalization
+    let (ra, _) = diurnal_parallax(180.0, 0.0, 1.0, dt, &location);
+    assert!(ra >= 0.0 && ra < 360.0);
 }

@@ -85,3 +85,54 @@ fn test_phase_illumination_consistency() {
         }
     }
 }
+
+#[test]
+fn test_moon_edge_cases() {
+    // Test moon phase angle wraparound
+    let dt = Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
+    let phase = moon_phase_angle(dt);
+    assert!(phase >= 0.0 && phase < 360.0);
+}
+
+#[test]
+fn test_moon_distance_formula() {
+    // Additional moon distance test
+    let dt = Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
+    let dist = moon_distance(dt);
+    
+    // Distance should be reasonable
+    assert!(dist > 350000.0); // Minimum possible distance
+    assert!(dist < 410000.0); // Maximum possible distance
+}
+
+#[test]
+fn test_moon_negative_normalizations() {
+    // Test negative longitude normalization
+    let dt = Utc.with_ymd_and_hms(1900, 1, 1, 0, 0, 0).unwrap();
+    let (lon, _) = moon_position(dt);
+    assert!(lon >= 0.0 && lon < 360.0);
+    
+    // Test negative phase normalization
+    let phase = moon_phase_angle(dt);
+    assert!(phase >= 0.0 && phase < 360.0);
+    
+    // Test negative RA normalization
+    let (ra, _) = moon_equatorial(dt);
+    assert!(ra >= 0.0 && ra < 360.0);
+}
+
+#[test]
+fn test_moon_phase_edge_cases() {
+    // Test all phase name branches
+    let base_dt = Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
+    
+    // Since we can't easily control the exact phase, at least ensure
+    // the function works for various dates throughout a month
+    for i in 0..30 {
+        let dt = base_dt + chrono::Duration::days(i);
+        let name = moon_phase_name(dt);
+        assert!(["New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous",
+                 "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent"]
+                .contains(&name));
+    }
+}

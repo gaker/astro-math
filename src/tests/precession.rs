@@ -33,3 +33,31 @@ fn test_precession_pole() {
     // Dec should remain very close to pole
     assert!((dec - 89.9).abs() < 0.1);
 }
+
+#[test]
+fn test_precession_normalization() {
+    // Test RA normalization in precession
+    let dt = Utc.with_ymd_and_hms(2100, 1, 1, 0, 0, 0).unwrap();
+    
+    // Test with RA that would go negative
+    let (ra1, _) = precess_date_to_j2000(5.0, 60.0, dt);
+    assert!(ra1 >= 0.0 && ra1 < 360.0);
+    
+    // Test with RA that would exceed 360
+    let (ra2, _) = precess_date_to_j2000(355.0, -60.0, dt);
+    assert!(ra2 >= 0.0 && ra2 < 360.0);
+}
+
+#[test]
+fn test_precession_ra_else_branches() {
+    // Test the else branches in precession RA normalization
+    let dt = Utc.with_ymd_and_hms(2050, 1, 1, 0, 0, 0).unwrap();
+    
+    // Test with RA that doesn't need normalization
+    let (ra1, _) = precess_date_to_j2000(180.0, 0.0, dt);
+    assert!(ra1 >= 0.0 && ra1 < 360.0);
+    
+    // Test j2000_to_date with normal RA
+    let (ra2, _) = precess_j2000_to_date(180.0, 0.0, dt);
+    assert!(ra2 >= 0.0 && ra2 < 360.0);
+}

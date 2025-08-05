@@ -43,3 +43,26 @@ fn test_radio_vs_optical() {
     // Higher humidity should increase radio refraction
     assert!(r_radio_humid > r_radio_dry);
 }
+
+#[test]
+fn test_refraction_edge_case() {
+    // Test refraction at exactly 0 altitude
+    let refr = refraction_radio(0.0, 1013.25, 20.0, 50.0);
+    assert!(refr > 0.0); // Should still have refraction at horizon
+}
+
+#[test]
+fn test_refraction_below_limit() {
+    // Test refraction functions below their altitude limits
+    // Bennett: below -0.5 degrees
+    let r1 = refraction_bennett(-1.0);
+    assert_eq!(r1, 0.0);
+    
+    // Saemundsson: below -1.0 degrees
+    let r2 = refraction_saemundsson(-2.0, 1013.25, 10.0);
+    assert_eq!(r2, 0.0);
+    
+    // Radio: below -1.0 degrees
+    let r3 = refraction_radio(-2.0, 1013.25, 10.0, 50.0);
+    assert_eq!(r3, 0.0);
+}

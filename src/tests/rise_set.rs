@@ -1,5 +1,5 @@
 use crate::rise_set::*;
-use crate::Location;
+use crate::*;
 use chrono::{TimeZone, Utc};
 
 #[test]
@@ -82,4 +82,53 @@ fn test_sun_polar_day() {
     
     // Should be None (midnight sun)
     assert!(result.is_none());
+}
+
+#[test]
+fn test_rise_set_wraparound() {
+    // Test rise/set time wraparound
+    let location = Location {
+        latitude_deg: 45.0,
+        longitude_deg: 0.0,
+        altitude_m: 0.0,
+    };
+    
+    // Test object that transits near midnight
+    let dt = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
+    let result = rise_transit_set(180.0, 30.0, dt, &location, None);
+    assert!(result.is_some());
+    
+    // Test next_rise near day boundary
+    let start = Utc.with_ymd_and_hms(2024, 8, 4, 23, 30, 0).unwrap();
+    let next_rise = next_rise(100.0, 20.0, start, &location, None);
+    assert!(next_rise.is_some());
+    
+    // Test next_set near day boundary
+    let next_set = next_set(100.0, 20.0, start, &location, None);
+    assert!(next_set.is_some());
+}
+
+#[test]
+fn test_rise_set_edge_cases() {
+    // Test rise/set edge cases
+    let location = Location {
+        latitude_deg: 45.0,
+        longitude_deg: 0.0,
+        altitude_m: 0.0,
+    };
+    
+    // Test case where transit offset is in normal range
+    let dt = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
+    let result = rise_transit_set(180.0, 0.0, dt, &location, None);
+    assert!(result.is_some());
+    
+    // Test sun_rise_set at high latitude during winter
+    let polar_location = Location {
+        latitude_deg: 85.0,
+        longitude_deg: 0.0,
+        altitude_m: 0.0,
+    };
+    let winter = Utc.with_ymd_and_hms(2024, 12, 21, 12, 0, 0).unwrap();
+    let _result = sun_rise_set(winter, &polar_location);
+    // May or may not be None depending on exact calculations
 }

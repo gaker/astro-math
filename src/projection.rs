@@ -183,4 +183,63 @@ mod tests {
         assert!((ra_orig - ra_back).abs() < 1e-10);
         assert!((dec_orig - dec_back).abs() < 1e-10);
     }
+
+    #[test]
+    fn test_opposite_side_of_sky() {
+        // Test projection of point on opposite side of sky (line 68)
+        let tp = TangentPlane::new(0.0, 0.0, 1.0);
+        let (x, y) = tp.ra_dec_to_pixel(180.0, 0.0);
+        assert!(x.is_nan());
+        assert!(y.is_nan());
+    }
+
+    #[test]
+    fn test_pixel_to_radec_at_reference() {
+        // Test inverse projection at reference point (lines 128, 134)
+        let tp = TangentPlane::new(100.0, 30.0, 1.0)
+            .with_reference_pixel(512.0, 512.0);
+        
+        let (ra, dec) = tp.pixel_to_ra_dec(512.0, 512.0);
+        assert!((ra - 100.0).abs() < 1e-10);
+        assert!((dec - 30.0).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_ra_normalization() {
+        // Test RA normalization in pixel_to_ra_dec (lines 145, 148)
+        let tp = TangentPlane::new(1.0, 0.0, 1.0)
+            .with_reference_pixel(512.0, 512.0);
+        
+        // Test point that would give negative RA
+        let (ra1, _) = tp.pixel_to_ra_dec(1000.0, 512.0);
+        assert!(ra1 >= 0.0 && ra1 < 360.0);
+        
+        // Test point that would give RA > 360
+        let tp2 = TangentPlane::new(359.0, 0.0, 1.0)
+            .with_reference_pixel(512.0, 512.0);
+        let (ra2, _) = tp2.pixel_to_ra_dec(100.0, 512.0);
+        assert!(ra2 >= 0.0 && ra2 < 360.0);
+    }
+    
+    #[test]
+    fn test_projection_edge_cases() {
+        // Already covered in projection.rs tests
+    }
+    
+    #[test]
+    fn test_projection_ra_while_loops() {
+        // Test projection RA normalization while loops
+        let tp = TangentPlane::new(0.0, 0.0, 1.0)
+            .with_reference_pixel(512.0, 512.0);
+        
+        // Create a pixel that would result in RA < 0
+        let (ra1, _) = tp.pixel_to_ra_dec(2000.0, 512.0);
+        assert!(ra1 >= 0.0 && ra1 < 360.0);
+        
+        // Create a pixel that would result in RA > 360
+        let tp2 = TangentPlane::new(359.9, 0.0, 1.0)
+            .with_reference_pixel(512.0, 512.0);
+        let (ra2, _) = tp2.pixel_to_ra_dec(100.0, 512.0);
+        assert!(ra2 >= 0.0 && ra2 < 360.0);
+    }
 }

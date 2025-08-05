@@ -57,3 +57,33 @@ fn test_coordinate_ranges() {
         assert!(dec2 >= -90.0 && dec2 <= 90.0, "Dec out of range: {}", dec2);
     }
 }
+
+#[test]
+fn test_galactic_landmarks() {
+    // Test the galactic_landmarks function
+    let landmarks = galactic_landmarks();
+    assert!(!landmarks.is_empty());
+    
+    // Check that galactic center is included
+    let gc = landmarks.iter().find(|(name, _, _)| *name == "Galactic Center");
+    assert!(gc.is_some());
+    let (_, l, b) = gc.unwrap();
+    assert_eq!(*l, 0.0);
+    assert_eq!(*b, 0.0);
+    
+    // Check all landmarks have valid coordinates
+    for (name, l, b) in landmarks {
+        assert!(!name.is_empty());
+        assert!(l >= 0.0 && l < 360.0);
+        assert!(b >= -90.0 && b <= 90.0);
+    }
+}
+
+#[test]
+fn test_galactic_constants() {
+    // Test access to galactic constants
+    assert!(NGP_RA > 0.0);
+    assert!(NGP_DEC > 0.0);
+    assert!(GC_RA > 0.0);
+    assert!(GC_DEC < 0.0); // Negative declination
+}

@@ -1,5 +1,4 @@
-use crate::location::Location;
-use crate::transforms::ra_dec_to_alt_az;
+use crate::*;
 use chrono::{TimeZone, Utc};
 
 const EPSILON: f64 = 0.1; // ~6 arcminutes tolerance
@@ -22,7 +21,7 @@ fn test_ra_dec_to_alt_az_astropy_crosscheck() {
 
     // Astropy verified:
     // Alt = 48.626°, Az = 78.244° (measured from North through East)
-    let (alt, az) = ra_dec_to_alt_az(ra, dec, dt, &observer);
+    let (alt, az) = transforms::ra_dec_to_alt_az(ra, dec, dt, &observer);
     println!("Alt: {}", alt);
     println!("AZ: {}", az);
 
@@ -53,7 +52,7 @@ fn test_ra_dec_to_alt_az_negative_azimuth_wrap() {
     let ra = 180.0;
     let dec = -10.0;
 
-    let (_alt, az) = ra_dec_to_alt_az(ra, dec, dt, &loc);
+    let (_alt, az) = transforms::ra_dec_to_alt_az(ra, dec, dt, &loc);
 
     assert!(az >= 0.0 && az <= 360.0, "Azimuth should be normalized to [0, 360), got {}", az);
 }
@@ -74,7 +73,7 @@ fn test_ra_dec_to_alt_az_zenith_edge_case() {
     let ra = 0.0; // Will adjust based on LST
     let dec = 45.0; // Same as latitude
     
-    let (alt, az) = ra_dec_to_alt_az(ra, dec, dt, &observer);
+    let (alt, az) = transforms::ra_dec_to_alt_az(ra, dec, dt, &observer);
     
     // Near zenith, altitude should be close to 90
     if alt > 89.9 {
@@ -99,7 +98,7 @@ fn test_ra_dec_to_alt_az_polar_observer() {
     let ra = 37.95456;
     let dec = 89.26411;
     
-    let (alt, az) = ra_dec_to_alt_az(ra, dec, dt, &observer);
+    let (alt, az) = transforms::ra_dec_to_alt_az(ra, dec, dt, &observer);
     
     // Should not crash and should give reasonable values
     assert!(alt >= -90.0 && alt <= 90.0, "Altitude out of range: {}", alt);
@@ -121,9 +120,61 @@ fn test_ra_dec_to_alt_az_numerical_stability() {
     let ra = 90.0;
     let dec = 0.0;
     
-    let (alt, az) = ra_dec_to_alt_az(ra, dec, dt, &observer);
+    let (alt, az) = transforms::ra_dec_to_alt_az(ra, dec, dt, &observer);
     
     // Should not crash from acos domain error
     assert!(alt >= -90.0 && alt <= 90.0, "Altitude out of range: {}", alt);
     assert!(az >= 0.0 && az <= 360.0, "Azimuth out of range: {}", az);
+}
+
+#[test]
+fn test_transforms_edge_cases() {
+    // Test transform edge cases
+    let dt = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
+    
+    // Test at north pole
+    let loc_np = Location {
+        latitude_deg: 90.0,
+        longitude_deg: 0.0,
+        altitude_m: 0.0,
+    };
+    let (alt1, _az1) = transforms::ra_dec_to_alt_az(0.0, 45.0, dt, &loc_np);
+    assert!((alt1 - 45.0).abs() < 1e-10); // Altitude equals declination at pole
+    
+    // Test at south pole
+    let loc_sp = Location {
+        latitude_deg: -90.0,
+        longitude_deg: 0.0,
+        altitude_m: 0.0,
+    };
+    let (alt2, _az2) = transforms::ra_dec_to_alt_az(0.0, -45.0, dt, &loc_sp);
+    assert!((alt2 - 45.0).abs() < 1e-10); // Altitude equals abs(declination) at pole
+    
+    // Test object at zenith
+    let loc = Location {
+        latitude_deg: 23.5,
+        longitude_deg: 0.0,
+        altitude_m: 0.0,
+    };
+    // Find an object that should be at zenith
+    let lst = loc.local_sidereal_time(dt);
+    let (alt3, _az3) = transforms::ra_dec_to_alt_az(lst * 15.0, 23.5, dt, &loc);
+    assert!((alt3 - 90.0).abs() < 0.001);
+}
+
+#[test]
+fn test_transforms_azimuth_branches() {
+    // Test transform azimuth calculation branches
+    let dt = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
+    let location = Location {
+        latitude_deg: 0.0, // Equator
+        longitude_deg: 0.0,
+        altitude_m: 0.0,
+    };
+    
+    // Test case where object is due east (az = 90)
+    let lst = location.local_sidereal_time(dt);
+    let ra = (lst - 6.0) * 15.0; // 6 hours before meridian
+    let (_, az) = transforms::ra_dec_to_alt_az(ra, 0.0, dt, &location);
+    assert!(az >= 0.0 && az < 360.0);
 }
