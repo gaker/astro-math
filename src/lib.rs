@@ -50,15 +50,29 @@
 //! print(altaz.alt.deg, altaz.az.deg)
 //! ```
 
+pub mod airmass;
+pub mod galactic;
 pub mod location;
+pub mod moon;
 mod nutation;
+pub mod parallax;
+pub mod precession;
 pub mod projection;
+pub mod refraction;
+pub mod rise_set;
 pub mod sidereal;
 pub mod time;
 pub mod transforms;
 
+pub use airmass::*;
+pub use galactic::*;
 pub use location::*;
+pub use moon::*;
+pub use parallax::*;
+pub use precession::*;
 pub use projection::*;
+pub use refraction::*;
+pub use rise_set::*;
 pub use sidereal::*;
 pub use time::*;
 pub use transforms::*;

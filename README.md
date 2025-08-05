@@ -4,15 +4,25 @@
 
 ![workflow](https://github.com/gaker/astro-math/actions/workflows/test.yml/badge.svg)
 
-Collection of astronomy-based algorithms based on the Jean Meeus book.
+A comprehensive astronomy library for Rust, implementing algorithms from Jean Meeus and other standard references for telescope control, observation planning, and celestial mechanics.
 
+## Features
 
-Currently considting of:
-- `time` – Julian Date, J2000, epoch helpers
-- `sidereal` – GMST, LMST, and Apparent Sidereal Time
-- `location` – Observer lat/lon/alt + LST calculation
-- `transforms` – RA/DEC ↔ Alt/Az conversion
-- `timestamp` – FITS-style UTC timestamp abstraction
+### Core Functionality
+- **Time** – Julian Date conversions, J2000 epoch calculations
+- **Sidereal Time** – GMST, LMST, and Apparent Sidereal Time
+- **Location** – Observer coordinates with DMS parsing and LST calculation
+- **Coordinate Transforms** – RA/Dec ↔ Alt/Az conversions
+- **Projection** – Gnomonic/TAN projection for astrometry
+
+### New Features
+- **Precession** – Convert coordinates between different epochs (J2000 ↔ current date)
+- **Parallax** – Diurnal and annual parallax corrections
+- **Atmospheric Refraction** – Multiple refraction models (Bennett, Saemundsson, radio)
+- **Moon Calculations** – Position, phase, illumination, distance
+- **Rise/Set/Transit** – Calculate rise, set, and meridian transit times
+- **Galactic Coordinates** – Convert between equatorial and galactic coordinate systems
+- **Airmass** – Multiple airmass formulas for extinction calculations
 
 
 ## Installation
@@ -24,7 +34,9 @@ Add to your `Cargo.toml`:
 astro-math = "0.1"
 ```
 
-Examples:
+## Quick Start
+
+### Basic Example
 
 ```rust
 use astro_math::{Location, julian_date, ra_dec_to_alt_az};
@@ -48,14 +60,145 @@ fn main() {
 }
 ```
 
-Produces:
+### Moon Phase and Position
 
-```
-JD: 2460526.75000
-LST: 19.44655 h
-Vega Alt: 77.776°, Az: 307.388°
+```rust
+use astro_math::{moon_phase_name, moon_illumination, moon_equatorial};
+use chrono::Utc;
+
+let now = Utc::now();
+let phase = moon_phase_name(now);
+let illumination = moon_illumination(now);
+let (ra, dec) = moon_equatorial(now);
+
+println!("Moon: {} ({:.1}% illuminated)", phase, illumination);
+println!("Position: RA={:.2}°, Dec={:.2}°", ra, dec);
 ```
 
+### Precession Between Epochs
+
+```rust
+use astro_math::precess_j2000_to_date;
+use chrono::{TimeZone, Utc};
+
+// Precess coordinates from J2000 to current date
+let dt = Utc::now();
+let (ra_j2000, dec_j2000) = (83.633, 22.0145); // Orion Nebula
+let (ra_now, dec_now) = precess_j2000_to_date(ra_j2000, dec_j2000, dt);
+
+println!("Orion Nebula J2000: RA={:.3}°, Dec={:.3}°", ra_j2000, dec_j2000);
+println!("Orion Nebula now:   RA={:.3}°, Dec={:.3}°", ra_now, dec_now);
+```
+
+### Rise, Set, and Transit Times
+
+```rust
+use astro_math::{sun_rise_set, rise_transit_set, Location};
+use chrono::{TimeZone, Utc};
+
+let location = Location {
+    latitude_deg: 40.7128,
+    longitude_deg: -74.0060,
+    altitude_m: 10.0,
+};
+
+let today = Utc::now().date_naive().and_hms_opt(12, 0, 0).unwrap();
+let today = Utc.from_utc_datetime(&today);
+
+// Sun rise and set
+if let Some((sunrise, sunset)) = sun_rise_set(today, &location) {
+    println!("Sunrise: {}", sunrise.format("%H:%M UTC"));
+    println!("Sunset:  {}", sunset.format("%H:%M UTC"));
+}
+
+// Star rise, transit, set
+let (ra, dec) = (88.793, 7.407); // Betelgeuse
+if let Some((rise, transit, set)) = rise_transit_set(ra, dec, today, &location, None) {
+    println!("Betelgeuse rises:    {}", rise.format("%H:%M UTC"));
+    println!("Betelgeuse transits: {}", transit.format("%H:%M UTC"));
+    println!("Betelgeuse sets:     {}", set.format("%H:%M UTC"));
+}
+```
+
+
+### More Examples
+
+Check out the `examples/` directory for comprehensive examples:
+
+- `precession.rs` - Coordinate precession between epochs
+- `parallax.rs` - Diurnal and annual parallax corrections
+- `refraction.rs` - Atmospheric refraction models
+- `moon.rs` - Moon position, phase, and rise/set calculations  
+- `rise_set.rs` - Rise, set, and transit time calculations
+- `galactic.rs` - Galactic coordinate conversions
+- `airmass.rs` - Airmass and extinction calculations
+
+Run examples with:
+
+```bash
+cargo run --example moon
+cargo run --example rise_set
+```
+
+## API Documentation
+
+### Time Functions
+
+- `julian_date(datetime)` - Convert DateTime to Julian Date
+- `j2000_days(datetime)` - Days since J2000.0 epoch
+
+### Coordinate Transformations
+
+- `ra_dec_to_alt_az(ra, dec, datetime, location)` - Equatorial to horizontal
+- `equatorial_to_galactic(ra, dec)` - Equatorial to galactic coordinates
+- `galactic_to_equatorial(l, b)` - Galactic to equatorial coordinates
+
+### Precession
+
+- `precess_j2000_to_date(ra, dec, datetime)` - J2000 to current epoch
+- `precess_date_to_j2000(ra, dec, datetime)` - Current epoch to J2000
+
+### Moon Calculations
+
+- `moon_position(datetime)` - Returns (longitude, latitude) in ecliptic
+- `moon_equatorial(datetime)` - Returns (RA, Dec)
+- `moon_phase_angle(datetime)` - Phase angle in degrees
+- `moon_phase_name(datetime)` - Phase name as string
+- `moon_illumination(datetime)` - Illumination percentage
+- `moon_distance(datetime)` - Distance in kilometers
+
+### Refraction Models
+
+- `refraction_bennett(altitude)` - Bennett's formula
+- `refraction_saemundsson(altitude, pressure, temperature)` - With weather
+- `refraction_radio(altitude, pressure, temperature, humidity)` - Radio wavelengths
+
+### Airmass Calculations
+
+- `airmass_plane_parallel(altitude)` - Simple secant formula
+- `airmass_young(altitude)` - Young's formula (1994)
+- `airmass_pickering(altitude)` - Pickering's formula (2002)
+- `extinction_magnitudes(airmass, coefficient)` - Calculate extinction
+
+## Testing
+
+The library includes comprehensive unit tests. Run with:
+
+```bash
+cargo test
+```
+
+## References
+
+- Meeus, J. (1998). *Astronomical Algorithms* (2nd ed.)
+- IAU SOFA Library (Standards of Fundamental Astronomy)
+- Reid, M. J. & Brunthaler, A. (2004). *The Proper Motion of Sagittarius A**
+- Young, A. T. (1994). *Air mass and refraction*
+- Pickering, K. A. (2002). *The Southern Limits of the Ancient Star Catalog*
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
