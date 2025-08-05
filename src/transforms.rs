@@ -77,21 +77,40 @@ pub fn ra_dec_to_alt_az(
     let sin_alt = dec_rad.sin() * lat_rad.sin() + dec_rad.cos() * lat_rad.cos() * ha_rad.cos();
     let alt_rad = sin_alt.asin();
 
-    // Azimuth (Meeus formula)
-    let cos_az = (dec_rad.sin() - alt_rad.sin() * lat_rad.sin()) / (alt_rad.cos() * lat_rad.cos());
-    let mut az_rad = cos_az.acos();
-
-    // Flip azimuth if hour angle is positive (west of meridian)
-    if ha_rad.sin() > 0.0 {
-        az_rad = 2.0 * PI - az_rad;
-    }
-
-    // Convert to degrees
+    // Azimuth calculation with improved numerical stability
     let alt_deg = alt_rad.to_degrees();
-    let mut az_deg = az_rad.to_degrees();
-    if az_deg < 0.0 {
-        az_deg += 360.0;
-    }
+    
+    // Handle edge cases for azimuth calculation
+    let denominator = alt_rad.cos() * lat_rad.cos();
+    
+    let az_deg = if denominator.abs() < 1e-10 {
+        // At zenith or for polar observers, azimuth is undefined
+        // Use hour angle to determine a reasonable azimuth
+        if ha_rad.sin() > 0.0 {
+            180.0 // West
+        } else {
+            0.0   // East (or on meridian)
+        }
+    } else {
+        // Standard azimuth calculation
+        let numerator = dec_rad.sin() - alt_rad.sin() * lat_rad.sin();
+        let cos_az = numerator / denominator;
+        
+        // Clamp cos_az to [-1, 1] to handle numerical errors
+        let cos_az_clamped = cos_az.clamp(-1.0, 1.0);
+        let mut az_rad = cos_az_clamped.acos();
+        
+        // Flip azimuth if hour angle is positive (west of meridian)
+        if ha_rad.sin() > 0.0 {
+            az_rad = 2.0 * PI - az_rad;
+        }
+        
+        let mut az = az_rad.to_degrees();
+        if az < 0.0 {
+            az += 360.0;
+        }
+        az
+    };
 
     (alt_deg, az_deg)
 }

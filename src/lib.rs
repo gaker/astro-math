@@ -52,11 +52,13 @@
 
 pub mod location;
 mod nutation;
+pub mod projection;
 pub mod sidereal;
 pub mod time;
 pub mod transforms;
 
 pub use location::*;
+pub use projection::*;
 pub use sidereal::*;
 pub use time::*;
 pub use transforms::*;

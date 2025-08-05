@@ -93,3 +93,33 @@ fn test_j2000_days() {
         );
     }
 }
+
+#[test]
+fn test_julian_date_gregorian_transition() {
+    // Test dates around the Gregorian calendar transition
+    // October 4, 1582 (Julian) was followed by October 15, 1582 (Gregorian)
+    
+    // Last day of Julian calendar
+    let dt_julian = Utc.with_ymd_and_hms(1582, 10, 4, 12, 0, 0).unwrap();
+    let jd_julian = julian_date(dt_julian);
+    assert!((jd_julian - 2299160.0).abs() < EPSILON, 
+        "Oct 4, 1582 noon should be JD 2299160.0, got {}", jd_julian);
+    
+    // First day of Gregorian calendar
+    let dt_gregorian = Utc.with_ymd_and_hms(1582, 10, 15, 12, 0, 0).unwrap();
+    let jd_gregorian = julian_date(dt_gregorian);
+    assert!((jd_gregorian - 2299161.0).abs() < EPSILON,
+        "Oct 15, 1582 noon should be JD 2299161.0, got {}", jd_gregorian);
+    
+    // Day before transition (Julian calendar rules apply)
+    let dt_before = Utc.with_ymd_and_hms(1582, 10, 3, 12, 0, 0).unwrap();
+    let jd_before = julian_date(dt_before);
+    assert!((jd_before - 2299159.0).abs() < EPSILON,
+        "Oct 3, 1582 noon should be JD 2299159.0, got {}", jd_before);
+    
+    // Day after transition (Gregorian calendar rules apply)
+    let dt_after = Utc.with_ymd_and_hms(1582, 10, 16, 12, 0, 0).unwrap();
+    let jd_after = julian_date(dt_after);
+    assert!((jd_after - 2299162.0).abs() < EPSILON,
+        "Oct 16, 1582 noon should be JD 2299162.0, got {}", jd_after);
+}

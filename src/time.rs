@@ -50,7 +50,9 @@ pub fn julian_date(datetime: DateTime<Utc>) -> f64 {
     }
 
     let a = (y as f64 / 100.0).floor();
-    let b = if datetime.date_naive() > chrono::NaiveDate::from_ymd_opt(1582, 10, 4).unwrap() {
+    // Gregorian calendar was adopted on October 15, 1582
+    // Dates from October 5-14, 1582 don't exist in the Gregorian calendar
+    let b = if datetime.date_naive() >= chrono::NaiveDate::from_ymd_opt(1582, 10, 15).unwrap() {
         2.0 - a + (a / 4.0).floor()
     } else {
         0.0

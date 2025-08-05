@@ -184,20 +184,22 @@ fn format_dms(deg: f64, is_lat: bool) -> String {
 
 //
 fn parse_dms(s: &str) -> Result<f64, ParseError> {
-    // Accepts: "+39 00 01.7", "-92 18 03.2", "39:00:01.7"
-    let s = s
-        .trim()
+    // Accepts: "+39 00 01.7", "-92 18 03.2", "39:00:01.7", "-00 30 00"
+    let original = s.trim();
+    let cleaned = original
         .replace('°', " ")
         .replace('\'', " ")
         .replace(':', " ")
         .replace('"', " ");
 
-    let parts: Vec<&str> = s.split_whitespace().collect();
+    let parts: Vec<&str> = cleaned.split_whitespace().collect();
     if parts.len() < 2 {
         return Err(ParseError::InvalidFormat);
     }
 
-    let sign = if parts[0].starts_with('-') || s.starts_with('-') {
+    // Check for negative sign at the beginning of the original string
+    // This handles cases like "-00 30 00" correctly
+    let sign = if original.starts_with('-') {
         -1.0
     } else {
         1.0
@@ -208,5 +210,7 @@ fn parse_dms(s: &str) -> Result<f64, ParseError> {
     let m = f64::from_str(parts.get(1).unwrap_or(&"0")).map_err(|_| ParseError::InvalidNumber)?;
     let s = f64::from_str(parts.get(2).unwrap_or(&"0")).map_err(|_| ParseError::InvalidNumber)?;
 
-    Ok(sign * (d + m / 60.0 + s / 3600.0))
+    // Calculate the absolute value first, then apply sign
+    let abs_value = d.abs() + m / 60.0 + s / 3600.0;
+    Ok(sign * abs_value)
 }

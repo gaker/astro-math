@@ -130,3 +130,33 @@ fn test_parse_valid_dms_strings() {
         assert_eq!(long, "-092° 18′ 03.200″");
     }
 }
+
+#[test]
+fn test_parse_dms_negative_zero_degrees() {
+    // Test the bug fix for "-00 30 00" being parsed as positive
+    let cases = [
+        // Negative zero degrees should parse as negative
+        ("-00 30 00", -0.5),
+        ("-00 00 30", -0.008333333),
+        ("-00 45 30.5", -0.758472222),
+        // With different formats
+        ("-00:30:00", -0.5),
+        ("-00°30'00\"", -0.5),
+        // Positive cases for comparison
+        ("00 30 00", 0.5),
+        ("+00 30 00", 0.5),
+    ];
+    
+    for (input, expected) in cases {
+        let result = Location::from_dms(input, "0 0 0", 0.0);
+        assert!(result.is_ok(), "Failed to parse: {}", input);
+        let loc = result.unwrap();
+        assert!(
+            (loc.latitude_deg - expected).abs() < 1e-9,
+            "Input '{}': got {}, expected {}",
+            input,
+            loc.latitude_deg,
+            expected
+        );
+    }
+}
