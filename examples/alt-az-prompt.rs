@@ -34,7 +34,7 @@ fn main() {
     let now = Utc::now();
     let jd = julian_date(now);
     let lst = location.local_sidereal_time(now);
-    let (alt, az) = ra_dec_to_alt_az(ra, dec, now, &location);
+    let (alt, az) = ra_dec_to_alt_az(ra, dec, now, &location).unwrap();
 
     println!("\n🕒 UTC Time       : {now}");
     println!("📆 Julian Date   : {:.5}", jd);

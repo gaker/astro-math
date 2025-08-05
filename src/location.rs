@@ -1,25 +1,8 @@
 use crate::time::julian_date;
 use crate::{local_mean_sidereal_time, sidereal::apparent_sidereal_time};
+use crate::error::{AstroError, Result};
 use chrono::{DateTime, Utc};
-use std::fmt;
 use std::str::FromStr;
-
-#[derive(Debug)]
-pub enum ParseError {
-    InvalidFormat,
-    InvalidNumber,
-}
-
-impl std::error::Error for ParseError {}
-
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ParseError::InvalidFormat => write!(f, "Invalid DMS format"),
-            ParseError::InvalidNumber => write!(f, "Invalid number in DMS string"),
-        }
-    }
-}
 
 /// Represents a physical observer location on Earth.
 ///
@@ -81,7 +64,7 @@ impl Location {
     /// let result = Location::from_dms("foo", "bar", 100.0);
     /// assert!(result.is_err());
     /// ```
-    pub fn from_dms(lat_str: &str, lon_str: &str, alt_m: f64) -> Result<Self, ParseError> {
+    pub fn from_dms(lat_str: &str, lon_str: &str, alt_m: f64) -> Result<Self> {
         let lat = parse_dms(lat_str)?;
         let lon = parse_dms(lon_str)?;
         Ok(Location {
@@ -183,7 +166,7 @@ fn format_dms(deg: f64, is_lat: bool) -> String {
 }
 
 //
-fn parse_dms(s: &str) -> Result<f64, ParseError> {
+fn parse_dms(s: &str) -> Result<f64> {
     // Accepts: "+39 00 01.7", "-92 18 03.2", "39:00:01.7", "-00 30 00"
     let original = s.trim();
     let cleaned = original
@@ -194,7 +177,10 @@ fn parse_dms(s: &str) -> Result<f64, ParseError> {
 
     let parts: Vec<&str> = cleaned.split_whitespace().collect();
     if parts.len() < 2 {
-        return Err(ParseError::InvalidFormat);
+        return Err(AstroError::InvalidDmsFormat {
+            input: s.to_string(),
+            expected: "DD MM SS.s or DD:MM:SS.s or DD°MM'SS.s\"",
+        });
     }
 
     // Check for negative sign at the beginning of the original string
@@ -206,9 +192,18 @@ fn parse_dms(s: &str) -> Result<f64, ParseError> {
     };
 
     let d = f64::from_str(parts[0].trim_start_matches(|c| c == '+' || c == '-'))
-        .map_err(|_| ParseError::InvalidNumber)?;
-    let m = f64::from_str(parts.get(1).unwrap_or(&"0")).map_err(|_| ParseError::InvalidNumber)?;
-    let s = f64::from_str(parts.get(2).unwrap_or(&"0")).map_err(|_| ParseError::InvalidNumber)?;
+        .map_err(|_| AstroError::InvalidDmsFormat {
+            input: s.to_string(),
+            expected: "DD MM SS.s or DD:MM:SS.s or DD°MM'SS.s\"",
+        })?;
+    let m = f64::from_str(parts.get(1).unwrap_or(&"0")).map_err(|_| AstroError::InvalidDmsFormat {
+        input: s.to_string(),
+        expected: "DD MM SS.s or DD:MM:SS.s or DD°MM'SS.s\"",
+    })?;
+    let s = f64::from_str(parts.get(2).unwrap_or(&"0")).map_err(|_| AstroError::InvalidDmsFormat {
+        input: s.to_string(),
+        expected: "DD MM SS.s or DD:MM:SS.s or DD°MM'SS.s\"",
+    })?;
 
     // Calculate the absolute value first, then apply sign
     let abs_value = d.abs() + m / 60.0 + s / 3600.0;

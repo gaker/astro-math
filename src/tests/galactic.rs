@@ -3,7 +3,7 @@ use crate::galactic::*;
 #[test]
 fn test_vernal_equinox() {
     // Vernal equinox point (RA=0, Dec=0)
-    let (l, b) = equatorial_to_galactic(0.0, 0.0);
+    let (l, b) = equatorial_to_galactic(0.0, 0.0).unwrap();
     
     // Should be approximately l=96.3°, b=-60.2°
     assert!((l - 96.3).abs() < 1.0);
@@ -19,7 +19,7 @@ fn test_galactic_plane_objects() {
     ];
     
     for (ra, dec) in galactic_objects {
-        let (_, b) = equatorial_to_galactic(ra, dec);
+        let (_, b) = equatorial_to_galactic(ra, dec).unwrap();
         assert!(b.abs() < 5.0); // Within 5 degrees of galactic plane
     }
 }
@@ -27,11 +27,11 @@ fn test_galactic_plane_objects() {
 #[test]
 fn test_high_galactic_latitude() {
     // North celestial pole
-    let (_l, b) = equatorial_to_galactic(0.0, 90.0);
+    let (_l, b) = equatorial_to_galactic(0.0, 90.0).unwrap();
     assert!((b - 27.13).abs() < 0.5); // Should be at galactic latitude ~27°
     
     // South celestial pole
-    let (_l, b) = equatorial_to_galactic(0.0, -90.0);
+    let (_l, b) = equatorial_to_galactic(0.0, -90.0).unwrap();
     assert!((b - (-27.13)).abs() < 0.5);
 }
 
@@ -41,18 +41,18 @@ fn test_coordinate_ranges() {
     let test_coords = [
         (0.0, 0.0),
         (180.0, 0.0),
-        (360.0, 0.0),
+        (359.9, 0.0),
         (45.0, 45.0),
         (270.0, -45.0),
     ];
     
     for (ra, dec) in test_coords {
-        let (l, b) = equatorial_to_galactic(ra, dec);
+        let (l, b) = equatorial_to_galactic(ra, dec).unwrap();
         assert!(l >= 0.0 && l < 360.0, "l out of range: {}", l);
         assert!(b >= -90.0 && b <= 90.0, "b out of range: {}", b);
         
         // Test reverse conversion
-        let (ra2, dec2) = galactic_to_equatorial(l, b);
+        let (ra2, dec2) = galactic_to_equatorial(l, b).unwrap();
         assert!(ra2 >= 0.0 && ra2 < 360.0, "RA out of range: {}", ra2);
         assert!(dec2 >= -90.0 && dec2 <= 90.0, "Dec out of range: {}", dec2);
     }

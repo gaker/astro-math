@@ -27,7 +27,7 @@
 //!
 //! let jd = julian_date(dt);
 //! let lst = loc.local_sidereal_time(dt);
-//! let (alt, az) = ra_dec_to_alt_az(279.23473479, 38.78368896, dt, &loc);
+//! let (alt, az) = ra_dec_to_alt_az(279.23473479, 38.78368896, dt, &loc).unwrap();
 //!
 //! println!("JD: {:.5}", jd);
 //! println!("LST: {:.5} h", lst);
@@ -51,6 +51,7 @@
 //! ```
 
 pub mod airmass;
+pub mod error;
 pub mod galactic;
 pub mod location;
 pub mod moon;
@@ -65,6 +66,7 @@ pub mod time;
 pub mod transforms;
 
 pub use airmass::*;
+pub use error::{AstroError, Result};
 pub use galactic::*;
 pub use location::*;
 pub use moon::*;

@@ -4,6 +4,7 @@
 //! Uses the IAU standard transformation.
 
 use std::f64::consts::PI;
+use crate::error::{Result, validate_ra, validate_dec};
 
 /// Converts equatorial coordinates to galactic coordinates.
 ///
@@ -21,11 +22,14 @@ use std::f64::consts::PI;
 /// use astro_math::equatorial_to_galactic;
 ///
 /// // Galactic center should be at l=0, b=0
-/// let (l, b) = equatorial_to_galactic(266.405, -28.936);
+/// let (l, b) = equatorial_to_galactic(266.405, -28.936).unwrap();
 /// assert!((l - 0.0).abs() < 0.1);
 /// assert!((b - 0.0).abs() < 0.1);
 /// ```
-pub fn equatorial_to_galactic(ra: f64, dec: f64) -> (f64, f64) {
+pub fn equatorial_to_galactic(ra: f64, dec: f64) -> Result<(f64, f64)> {
+    // Validate inputs
+    validate_ra(ra)?;
+    validate_dec(dec)?;
     // Convert to radians
     let ra_rad = ra * PI / 180.0;
     let dec_rad = dec * PI / 180.0;
@@ -63,7 +67,7 @@ pub fn equatorial_to_galactic(ra: f64, dec: f64) -> (f64, f64) {
         l_deg += 360.0;
     }
     
-    (l_deg, b_deg)
+    Ok((l_deg, b_deg))
 }
 
 /// Converts galactic coordinates to equatorial coordinates.
@@ -80,11 +84,19 @@ pub fn equatorial_to_galactic(ra: f64, dec: f64) -> (f64, f64) {
 /// use astro_math::galactic_to_equatorial;
 ///
 /// // Convert galactic center back to equatorial
-/// let (ra, dec) = galactic_to_equatorial(0.0, 0.0);
+/// let (ra, dec) = galactic_to_equatorial(0.0, 0.0).unwrap();
 /// assert!((ra - 266.405).abs() < 0.1);
 /// assert!((dec - (-28.936)).abs() < 0.1);
 /// ```
-pub fn galactic_to_equatorial(l: f64, b: f64) -> (f64, f64) {
+pub fn galactic_to_equatorial(l: f64, b: f64) -> Result<(f64, f64)> {
+    // Validate galactic latitude
+    if b < -90.0 || b > 90.0 {
+        return Err(crate::error::AstroError::InvalidCoordinate {
+            coord_type: "Galactic latitude",
+            value: b,
+            valid_range: "[-90, 90]",
+        });
+    }
     // Convert to radians
     let l_rad = l * PI / 180.0;
     let b_rad = b * PI / 180.0;
@@ -120,7 +132,7 @@ pub fn galactic_to_equatorial(l: f64, b: f64) -> (f64, f64) {
         ra_deg += 360.0;
     }
     
-    (ra_deg, dec_deg)
+    Ok((ra_deg, dec_deg))
 }
 
 /// North Galactic Pole in J2000.0 coordinates  
@@ -154,7 +166,7 @@ mod tests {
     #[test]
     fn test_galactic_center() {
         // Galactic center should be at l=0, b=0
-        let (l, b) = equatorial_to_galactic(GC_RA, GC_DEC);
+        let (l, b) = equatorial_to_galactic(GC_RA, GC_DEC).unwrap();
         assert!((l - 0.0).abs() < 0.01 || (l - 360.0).abs() < 0.01);
         assert!((b - 0.0).abs() < 0.01);
     }
@@ -162,13 +174,13 @@ mod tests {
     #[test]
     fn test_galactic_poles() {
         // North Galactic Pole
-        let (_l, b) = equatorial_to_galactic(NGP_RA, NGP_DEC);
+        let (_l, b) = equatorial_to_galactic(NGP_RA, NGP_DEC).unwrap();
         assert!((b - 90.0).abs() < 0.01);
         
         // South Galactic Pole (opposite of NGP)
         let sgp_ra = NGP_RA + 180.0;
         let sgp_dec = -NGP_DEC;
-        let (_l2, b2) = equatorial_to_galactic(sgp_ra % 360.0, sgp_dec);
+        let (_l2, b2) = equatorial_to_galactic(sgp_ra % 360.0, sgp_dec).unwrap();
         assert!((b2 - (-90.0)).abs() < 0.01);
     }
 
@@ -183,8 +195,8 @@ mod tests {
         ];
         
         for (ra, dec) in test_coords {
-            let (l, b) = equatorial_to_galactic(ra, dec);
-            let (ra2, dec2) = galactic_to_equatorial(l, b);
+            let (l, b) = equatorial_to_galactic(ra, dec).unwrap();
+            let (ra2, dec2) = galactic_to_equatorial(l, b).unwrap();
             
             // Handle RA wraparound at 0/360 boundary
             let ra_diff = (ra2 - ra).abs();
@@ -202,12 +214,12 @@ mod tests {
     fn test_known_objects() {
         // Test some known galactic coordinates
         // Sagittarius A* (galactic center)
-        let (l, b) = equatorial_to_galactic(266.417, -29.008);
+        let (l, b) = equatorial_to_galactic(266.417, -29.008).unwrap();
         assert!(l < 0.5 || l > 359.5);
         assert!(b.abs() < 0.1);
         
         // Cygnus X-1
-        let (l, b) = equatorial_to_galactic(299.590, 35.202);
+        let (l, b) = equatorial_to_galactic(299.590, 35.202).unwrap();
         assert!((l - 71.3).abs() < 0.5);
         assert!((b - 3.1).abs() < 0.5);
     }

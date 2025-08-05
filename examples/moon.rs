@@ -38,7 +38,7 @@ fn main() {
         altitude_m: 10.0,
     };
     
-    let (alt, az) = ra_dec_to_alt_az(ra, dec, dt, &location);
+    let (alt, az) = ra_dec_to_alt_az(ra, dec, dt, &location).unwrap();
     
     println!("\nMoon from New York City:");
     println!("  Altitude: {:.1}°", alt);

@@ -17,7 +17,7 @@ fn main() {
     let vega_dec_j2000 = 38.78368896;
     let now = Utc::now();
     
-    let (ra_now, dec_now) = precess_j2000_to_date(vega_ra_j2000, vega_dec_j2000, now);
+    let (ra_now, dec_now) = precess_j2000_to_date(vega_ra_j2000, vega_dec_j2000, now).unwrap();
     println!("Vega (α Lyrae) precession:");
     println!("  J2000.0: RA = {:.5}°, Dec = {:.5}°", vega_ra_j2000, vega_dec_j2000);
     println!("  Now:     RA = {:.5}°, Dec = {:.5}°", ra_now, dec_now);
@@ -28,7 +28,7 @@ fn main() {
     let polaris_dec_j2000 = 89.26410897;
     let dt_2050 = Utc.with_ymd_and_hms(2050, 1, 1, 0, 0, 0).unwrap();
     
-    let (ra_2050, dec_2050) = precess_j2000_to_date(polaris_ra_j2000, polaris_dec_j2000, dt_2050);
+    let (ra_2050, dec_2050) = precess_j2000_to_date(polaris_ra_j2000, polaris_dec_j2000, dt_2050).unwrap();
     println!("Polaris (α UMi) precession to 2050:");
     println!("  J2000.0: RA = {:.5}°, Dec = {:.5}°", polaris_ra_j2000, polaris_dec_j2000);
     println!("  2050:    RA = {:.5}°, Dec = {:.5}°", ra_2050, dec_2050);
@@ -40,8 +40,8 @@ fn main() {
     let test_dec = 22.0145;
     let dt_2025 = Utc.with_ymd_and_hms(2025, 6, 15, 12, 0, 0).unwrap();
     
-    let (ra_2025, dec_2025) = precess_j2000_to_date(test_ra, test_dec, dt_2025);
-    let (ra_back, dec_back) = precess_date_to_j2000(ra_2025, dec_2025, dt_2025);
+    let (ra_2025, dec_2025) = precess_j2000_to_date(test_ra, test_dec, dt_2025).unwrap();
+    let (ra_back, dec_back) = precess_date_to_j2000(ra_2025, dec_2025, dt_2025).unwrap();
     
     println!("  Original:  RA = {:.6}°, Dec = {:.6}°", test_ra, test_dec);
     println!("  → 2025:    RA = {:.6}°, Dec = {:.6}°", ra_2025, dec_2025);

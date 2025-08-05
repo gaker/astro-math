@@ -1,4 +1,5 @@
 use crate::location::Location;
+use crate::error::{Result, validate_ra, validate_dec};
 use chrono::{DateTime, Utc};
 use std::f64::consts::PI;
 
@@ -52,7 +53,7 @@ use std::f64::consts::PI;
 /// };
 ///
 /// // Vega (α Lyrae): RA = 279.2347°, Dec = +38.7837°
-/// let (alt, az) = ra_dec_to_alt_az(279.2347, 38.7837, dt, &loc);
+/// let (alt, az) = ra_dec_to_alt_az(279.2347, 38.7837, dt, &loc).unwrap();
 ///
 /// // These will match Stellarium/Astropy to within ~0.1°
 /// assert!(alt > 0.0 && alt < 10.0);
@@ -63,7 +64,10 @@ pub fn ra_dec_to_alt_az(
     dec_deg: f64,
     datetime: DateTime<Utc>,
     observer: &Location,
-) -> (f64, f64) {
+) -> Result<(f64, f64)> {
+    // Validate inputs
+    validate_ra(ra_deg)?;
+    validate_dec(dec_deg)?;
     // Convert declination and latitude to radians
     let dec_rad = dec_deg.to_radians();
     let lat_rad = observer.latitude_deg.to_radians();
@@ -112,5 +116,5 @@ pub fn ra_dec_to_alt_az(
         az
     };
 
-    (alt_deg, az_deg)
+    Ok((alt_deg, az_deg))
 }

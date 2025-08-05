@@ -22,7 +22,7 @@ fn main() {
     ];
     
     for (name, ra, dec) in objects {
-        let (l, b) = equatorial_to_galactic(ra, dec);
+        let (l, b) = equatorial_to_galactic(ra, dec).unwrap();
         println!("{:<21} | {:10.3}° | {:11.3}° | {:7.2}° | {:7.2}°", 
             name, ra, dec, l, b);
     }
@@ -34,7 +34,7 @@ fn main() {
     
     for l in (0..360).step_by(30) {
         let b = 0.0;
-        let (ra, dec) = galactic_to_equatorial(l as f64, b);
+        let (ra, dec) = galactic_to_equatorial(l as f64, b).unwrap();
         let description = match l {
             0 => "Galactic Center",
             90 => "Direction of rotation",
@@ -48,8 +48,8 @@ fn main() {
 
     // Example 3: Galactic poles
     println!("\nGalactic Poles:");
-    let (ra_ngp, dec_ngp) = galactic_to_equatorial(0.0, 90.0);
-    let (ra_sgp, dec_sgp) = galactic_to_equatorial(0.0, -90.0);
+    let (ra_ngp, dec_ngp) = galactic_to_equatorial(0.0, 90.0).unwrap();
+    let (ra_sgp, dec_sgp) = galactic_to_equatorial(0.0, -90.0).unwrap();
     println!("North Galactic Pole: RA = {:.3}°, Dec = {:.3}°", ra_ngp, dec_ngp);
     println!("South Galactic Pole: RA = {:.3}°, Dec = {:.3}°", ra_sgp, dec_sgp);
 
@@ -57,8 +57,8 @@ fn main() {
     println!("\nRound-trip Conversion Test:");
     let test_ra = 123.456;
     let test_dec = -45.678;
-    let (l, b) = equatorial_to_galactic(test_ra, test_dec);
-    let (ra2, dec2) = galactic_to_equatorial(l, b);
+    let (l, b) = equatorial_to_galactic(test_ra, test_dec).unwrap();
+    let (ra2, dec2) = galactic_to_equatorial(l, b).unwrap();
     println!("Original:  RA = {:.6}°, Dec = {:.6}°", test_ra, test_dec);
     println!("Galactic:  l = {:.6}°, b = {:.6}°", l, b);
     println!("Converted: RA = {:.6}°, Dec = {:.6}°", ra2, dec2);
@@ -68,7 +68,7 @@ fn main() {
     // Example 5: Show galactic landmarks
     println!("\nGalactic Landmarks:");
     for (name, l, b) in galactic_landmarks() {
-        let (ra, dec) = galactic_to_equatorial(l, b);
+        let (ra, dec) = galactic_to_equatorial(l, b).unwrap();
         println!("{:<25} | l={:7.1}°, b={:7.1}° | RA={:7.2}°, Dec={:7.2}°",
             name, l, b, ra, dec);
     }

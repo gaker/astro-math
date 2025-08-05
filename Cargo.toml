@@ -14,6 +14,7 @@ categories = ["science", "aerospace", "data-structures"]
 
 [dependencies]
 chrono = { version = "0.4", features = ["clock"] }
+thiserror = "1.0"
 
 [dev-dependencies]
 approx = "0.5"

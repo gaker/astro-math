@@ -93,7 +93,7 @@ pub fn next_rise(
     altitude_deg: Option<f64>,
 ) -> Option<DateTime<Utc>> {
     // Check current altitude
-    let (_current_alt, _) = ra_dec_to_alt_az(ra, dec, start_time, location);
+    let (_current_alt, _) = ra_dec_to_alt_az(ra, dec, start_time, location).unwrap();
     let _target_alt = altitude_deg.unwrap_or(RISE_SET_ALTITUDE);
     
     // Search for rise time over next 2 days

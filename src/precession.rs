@@ -3,6 +3,7 @@
 //! Based on IAU 2000/2006 precession model from Meeus Chapter 21.
 
 use chrono::{DateTime, Utc};
+use crate::error::{Result, validate_ra, validate_dec};
 
 /// Calculates precession angles (ζ, z, θ) in degrees for converting from J2000.0 to a given date.
 ///
@@ -43,10 +44,13 @@ pub fn precession_angles(jd: f64) -> (f64, f64, f64) {
 /// use astro_math::precess_j2000_to_date;
 ///
 /// let dt = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-/// let (ra, dec) = precess_j2000_to_date(0.0, 0.0, dt);
+/// let (ra, dec) = precess_j2000_to_date(0.0, 0.0, dt).unwrap();
 /// println!("Precessed coordinates: RA={:.4}°, Dec={:.4}°", ra, dec);
 /// ```
-pub fn precess_j2000_to_date(ra_j2000: f64, dec_j2000: f64, datetime: DateTime<Utc>) -> (f64, f64) {
+pub fn precess_j2000_to_date(ra_j2000: f64, dec_j2000: f64, datetime: DateTime<Utc>) -> Result<(f64, f64)> {
+    // Validate inputs
+    validate_ra(ra_j2000)?;
+    validate_dec(dec_j2000)?;
     let jd = crate::julian_date(datetime);
     let (zeta, z, theta) = precession_angles(jd);
 
@@ -74,7 +78,7 @@ pub fn precess_j2000_to_date(ra_j2000: f64, dec_j2000: f64, datetime: DateTime<U
     let ra_deg = ra_new.to_degrees();
     let ra_normalized = if ra_deg < 0.0 { ra_deg + 360.0 } else { ra_deg };
 
-    (ra_normalized, dec_new.to_degrees())
+    Ok((ra_normalized, dec_new.to_degrees()))
 }
 
 /// Applies precession from a given date back to J2000.0.
@@ -86,7 +90,10 @@ pub fn precess_j2000_to_date(ra_j2000: f64, dec_j2000: f64, datetime: DateTime<U
 ///
 /// # Returns
 /// Tuple of (ra, dec) at J2000.0 in degrees
-pub fn precess_date_to_j2000(ra: f64, dec: f64, datetime: DateTime<Utc>) -> (f64, f64) {
+pub fn precess_date_to_j2000(ra: f64, dec: f64, datetime: DateTime<Utc>) -> Result<(f64, f64)> {
+    // Validate inputs
+    validate_ra(ra)?;
+    validate_dec(dec)?;
     let jd = crate::julian_date(datetime);
     let (zeta, z, theta) = precession_angles(jd);
 
@@ -120,7 +127,7 @@ pub fn precess_date_to_j2000(ra: f64, dec: f64, datetime: DateTime<Utc>) -> (f64
         ra_deg 
     };
 
-    (ra_normalized, dec_j2000.to_degrees())
+    Ok((ra_normalized, dec_j2000.to_degrees()))
 }
 
 #[cfg(test)]
@@ -147,7 +154,7 @@ mod tests {
     fn test_precess_j2000_to_date() {
         // Test precession of Polaris from J2000 to J2050
         let dt = Utc.with_ymd_and_hms(2050, 1, 1, 0, 0, 0).unwrap();
-        let (ra, dec) = precess_j2000_to_date(37.95456067, 89.26410897, dt);
+        let (ra, dec) = precess_j2000_to_date(37.95456067, 89.26410897, dt).unwrap();
         
         // Polaris should show significant RA change due to proximity to pole
         assert!(ra > 50.0 && ra < 60.0); // Based on actual calculation
@@ -162,8 +169,8 @@ mod tests {
         let ra_original = 83.633;
         let dec_original = 22.0145;
 
-        let (ra_precessed, dec_precessed) = precess_j2000_to_date(ra_original, dec_original, dt);
-        let (ra_back, dec_back) = precess_date_to_j2000(ra_precessed, dec_precessed, dt);
+        let (ra_precessed, dec_precessed) = precess_j2000_to_date(ra_original, dec_original, dt).unwrap();
+        let (ra_back, dec_back) = precess_date_to_j2000(ra_precessed, dec_precessed, dt).unwrap();
 
         assert!((ra_back - ra_original).abs() < 0.001); // Allow small error
         assert!((dec_back - dec_original).abs() < 0.001);
@@ -173,7 +180,7 @@ mod tests {
     fn test_precess_vega() {
         // Test Vega's precession over 25 years
         let dt = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
-        let (ra, dec) = precess_j2000_to_date(279.23473479, 38.78368896, dt);
+        let (ra, dec) = precess_j2000_to_date(279.23473479, 38.78368896, dt).unwrap();
         
         // Vega should precess slightly over 25 years
         assert!((ra - 279.23473479).abs() < 0.5); // Small change in RA
