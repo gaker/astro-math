@@ -106,6 +106,23 @@ fn test_ra_dec_to_alt_az_polar_observer() {
 }
 
 #[test]
+fn test_azimuth_negative_normalization() {
+    let observer = Location {
+        latitude_deg: -45.0,
+        longitude_deg: 0.0,
+        altitude_m: 0.0,
+    };
+    
+    let dt = Utc.with_ymd_and_hms(2024, 1, 1, 12, 0, 0).unwrap();
+    
+    // Test coordinates that might produce negative azimuth before normalization
+    let (alt, az) = transforms::ra_dec_to_alt_az(270.0, -30.0, dt, &observer).unwrap();
+    
+    assert!(alt >= -90.0 && alt <= 90.0);
+    assert!(az >= 0.0 && az < 360.0);
+}
+
+#[test]
 fn test_ra_dec_to_alt_az_numerical_stability() {
     // Test case that could cause cos_az to be slightly outside [-1, 1]
     let observer = Location {

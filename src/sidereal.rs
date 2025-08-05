@@ -1,3 +1,46 @@
+//! Sidereal time calculations for astronomical observations.
+//!
+//! This module provides functions to calculate sidereal time - the time system based on
+//! Earth's rotation relative to the stars rather than the Sun. Sidereal time is essential
+//! for telescope pointing and celestial coordinate conversions.
+//!
+//! # Overview
+//!
+//! While solar time (UTC) is based on the Sun's position, sidereal time tracks Earth's
+//! rotation relative to distant stars. A sidereal day is about 23h 56m 4s, roughly 4
+//! minutes shorter than a solar day.
+//!
+//! # Types of Sidereal Time
+//!
+//! - **Greenwich Mean Sidereal Time (GMST)**: Sidereal time at Greenwich meridian,
+//!   based on Earth's uniform rotation
+//! - **Local Mean Sidereal Time (LMST)**: GMST adjusted for observer's longitude
+//! - **Apparent Sidereal Time**: True sidereal time including nutation effects
+//!
+//! # Applications
+//!
+//! - **Telescope Pointing**: Converting RA/Dec to Alt/Az requires local sidereal time
+//! - **Meridian Transit**: Objects transit when their RA equals the LST
+//! - **Hour Angle**: HA = LST - RA tells you where an object is relative to meridian
+//!
+//! # Example
+//!
+//! ```
+//! use chrono::{Utc, TimeZone};
+//! use astro_math::{julian_date, Location};
+//!
+//! let location = Location { 
+//!     latitude_deg: 40.0, 
+//!     longitude_deg: -74.0, 
+//!     altitude_m: 0.0 
+//! };
+//! let dt = Utc::now();
+//! let lst = location.local_sidereal_time(dt);
+//! 
+//! // Object at RA = LST is on the meridian (highest point)
+//! println!("Current LST: {:.2} hours", lst);
+//! ```
+
 use crate::nutation::{mean_obliquity_arcsec, nutation_in_longitude_arcsec};
 
 /// Computes the Greenwich Mean Sidereal Time (GMST) in fractional hours (0.0–24.0)

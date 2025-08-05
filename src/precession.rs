@@ -1,6 +1,25 @@
 //! Precession calculations for converting coordinates between different epochs.
 //!
-//! Based on IAU 2000/2006 precession model from Meeus Chapter 21.
+//! This module handles the slow wobble of Earth's axis that causes celestial
+//! coordinates to change over time. It provides functions to convert coordinates
+//! between J2000.0 and any other epoch.
+//!
+//! # Background
+//!
+//! Due to gravitational forces from the Sun and Moon on Earth's equatorial bulge,
+//! the celestial poles trace circles on the sky with a period of ~26,000 years.
+//! This means star coordinates slowly change over time and must be adjusted to
+//! match observations.
+//!
+//! # Error Handling
+//!
+//! All functions validate their inputs and return `Result<T>` types:
+//! - `AstroError::InvalidCoordinate` for out-of-range RA or Dec values
+//!
+//! # References
+//!
+//! - IAU 2000/2006 precession model
+//! - Meeus, "Astronomical Algorithms", Chapter 21
 
 use chrono::{DateTime, Utc};
 use crate::error::{Result, validate_ra, validate_dec};
@@ -38,6 +57,12 @@ pub fn precession_angles(jd: f64) -> (f64, f64, f64) {
 /// # Returns
 /// Tuple of (ra, dec) at the target epoch in degrees
 ///
+/// # Errors
+///
+/// Returns `Err(AstroError::InvalidCoordinate)` if:
+/// - `ra_j2000` is outside [0, 360)
+/// - `dec_j2000` is outside [-90, 90]
+///
 /// # Example
 /// ```
 /// use chrono::{TimeZone, Utc};
@@ -46,6 +71,19 @@ pub fn precession_angles(jd: f64) -> (f64, f64, f64) {
 /// let dt = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
 /// let (ra, dec) = precess_j2000_to_date(0.0, 0.0, dt).unwrap();
 /// println!("Precessed coordinates: RA={:.4}°, Dec={:.4}°", ra, dec);
+/// ```
+///
+/// # Error Example
+/// ```
+/// # use chrono::Utc;
+/// # use astro_math::{precess_j2000_to_date, error::AstroError};
+/// // Invalid RA
+/// match precess_j2000_to_date(400.0, 0.0, Utc::now()) {
+///     Err(AstroError::InvalidCoordinate { coord_type, .. }) => {
+///         assert_eq!(coord_type, "RA");
+///     }
+///     _ => panic!("Expected error"),
+/// }
 /// ```
 pub fn precess_j2000_to_date(ra_j2000: f64, dec_j2000: f64, datetime: DateTime<Utc>) -> Result<(f64, f64)> {
     // Validate inputs
@@ -83,6 +121,9 @@ pub fn precess_j2000_to_date(ra_j2000: f64, dec_j2000: f64, datetime: DateTime<U
 
 /// Applies precession from a given date back to J2000.0.
 ///
+/// This is the inverse of [`precess_j2000_to_date`] and is useful for converting
+/// current epoch coordinates to the standard J2000.0 reference frame.
+///
 /// # Arguments
 /// * `ra` - Right ascension at the given date in degrees
 /// * `dec` - Declination at the given date in degrees
@@ -90,6 +131,21 @@ pub fn precess_j2000_to_date(ra_j2000: f64, dec_j2000: f64, datetime: DateTime<U
 ///
 /// # Returns
 /// Tuple of (ra, dec) at J2000.0 in degrees
+///
+/// # Errors
+///
+/// Returns `Err(AstroError::InvalidCoordinate)` if:
+/// - `ra` is outside [0, 360)
+/// - `dec` is outside [-90, 90]
+///
+/// # Example
+/// ```
+/// # use chrono::{TimeZone, Utc};
+/// # use astro_math::precess_date_to_j2000;
+/// let dt = Utc.with_ymd_and_hms(2025, 1, 1, 0, 0, 0).unwrap();
+/// // Convert current epoch coordinates back to J2000.0
+/// let (ra_j2000, dec_j2000) = precess_date_to_j2000(10.0, 20.0, dt).unwrap();
+/// ```
 pub fn precess_date_to_j2000(ra: f64, dec: f64, datetime: DateTime<Utc>) -> Result<(f64, f64)> {
     // Validate inputs
     validate_ra(ra)?;

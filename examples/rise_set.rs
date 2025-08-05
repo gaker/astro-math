@@ -25,7 +25,7 @@ fn main() {
     ).unwrap();
     
     println!("Sun Rise/Set Times for {}:", today.format("%Y-%m-%d"));
-    if let Some((sunrise, sunset)) = sun_rise_set(noon_today, &location) {
+    if let Some((sunrise, sunset)) = sun_rise_set(noon_today, &location).unwrap() {
         let daylight = sunset - sunrise;
         println!("  Sunrise: {} UTC", sunrise.format("%H:%M:%S"));
         println!("  Sunset:  {} UTC", sunset.format("%H:%M:%S"));
@@ -42,7 +42,7 @@ fn main() {
     let vega_dec = 38.78368896;
     
     println!("\nVega Rise/Transit/Set Times:");
-    if let Some((rise, transit, set)) = rise_transit_set(vega_ra, vega_dec, noon_today, &location, None) {
+    if let Some((rise, transit, set)) = rise_transit_set(vega_ra, vega_dec, noon_today, &location, None).unwrap() {
         let above_horizon = set - rise;
         println!("  Rise:    {} UTC", rise.format("%H:%M:%S"));
         println!("  Transit: {} UTC (altitude: ~{:.1}°)", 
@@ -64,13 +64,13 @@ fn main() {
     println!("\nMoon Rise/Set Times:");
     println!("  Current position: RA={:.2}°, Dec={:.2}°", moon_ra, moon_dec);
     
-    if let Some(rise) = next_rise(moon_ra, moon_dec, today, &location, None) {
+    if let Some(rise) = next_rise(moon_ra, moon_dec, today, &location, None).unwrap() {
         println!("  Next rise: {} UTC", rise.format("%Y-%m-%d %H:%M:%S"));
     } else {
         println!("  Moon does not rise");
     }
     
-    if let Some(set) = next_set(moon_ra, moon_dec, today, &location, None) {
+    if let Some(set) = next_set(moon_ra, moon_dec, today, &location, None).unwrap() {
         println!("  Next set:  {} UTC", set.format("%Y-%m-%d %H:%M:%S"));
     } else {
         println!("  Moon does not set");
@@ -88,7 +88,7 @@ fn main() {
             altitude_m: 0.0,
         };
         
-        if let Some((rise, _, set)) = rise_transit_set(0.0, 0.0, noon_today, &loc, None) {
+        if let Some((rise, _, set)) = rise_transit_set(0.0, 0.0, noon_today, &loc, None).unwrap() {
             let hours_up = (set - rise).num_minutes() as f64 / 60.0;
             println!("{:7.0}° | {} | {} | {:8.1}",
                 lat,
@@ -113,10 +113,15 @@ fn main() {
     let lambda = l + 1.915 * g.sin() + 0.020 * (2.0 * g).sin();
     let lambda_rad = lambda.to_radians();
     let epsilon = 23.439_f64.to_radians();
-    let sun_ra = lambda_rad.cos().atan2(epsilon.cos() * lambda_rad.sin()).to_degrees();
+    let mut sun_ra = lambda_rad.cos().atan2(epsilon.cos() * lambda_rad.sin()).to_degrees();
     let sun_dec = (epsilon.sin() * lambda_rad.sin()).asin().to_degrees();
     
-    if let Some((dawn, _, dusk)) = rise_transit_set(sun_ra, sun_dec, noon_today, &location, Some(civil_twilight_alt)) {
+    // Normalize RA to [0, 360)
+    if sun_ra < 0.0 {
+        sun_ra += 360.0;
+    }
+    
+    if let Some((dawn, _, dusk)) = rise_transit_set(sun_ra, sun_dec, noon_today, &location, Some(civil_twilight_alt)).unwrap() {
         println!("  Civil dawn: {} UTC", dawn.format("%H:%M:%S"));
         println!("  Civil dusk: {} UTC", dusk.format("%H:%M:%S"));
     }

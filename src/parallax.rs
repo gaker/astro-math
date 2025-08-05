@@ -1,9 +1,24 @@
 //! Parallax corrections for celestial coordinates.
 //!
-//! Accounts for the observer's position relative to Earth's center (diurnal parallax)
-//! and Earth's position in its orbit (annual parallax).
+//! This module handles the apparent shift in celestial object positions due to the
+//! observer's changing viewpoint. It includes both diurnal parallax (due to Earth's
+//! rotation) and annual parallax (due to Earth's orbit around the Sun).
+//!
+//! # Types of Parallax
+//!
+//! - **Diurnal Parallax**: Significant for nearby objects like the Moon. An observer
+//!   on Earth's surface sees objects from a slightly different angle than from Earth's center.
+//! - **Annual Parallax**: Measurable for nearby stars. As Earth orbits the Sun, nearby
+//!   stars appear to shift against the background of distant stars.
+//!
+//! # Error Handling
+//!
+//! All functions validate their inputs and return `Result<T>` types:
+//! - `AstroError::InvalidCoordinate` for out-of-range RA or Dec values
+//! - `AstroError::OutOfRange` for invalid distance values
 
 use crate::{Location, julian_date};
+use crate::error::{Result, validate_ra, validate_dec};
 use chrono::{DateTime, Utc};
 
 /// Earth's equatorial radius in kilometers
@@ -38,6 +53,10 @@ pub fn geocentric_distance(location: &Location) -> f64 {
 
 /// Applies diurnal parallax correction for the Moon or other nearby objects.
 ///
+/// Corrects for the difference between the observer's position on Earth's surface
+/// and Earth's center. This effect is most significant for the Moon (up to ~1 degree)
+/// and negligible for stars.
+///
 /// # Arguments
 /// * `ra` - Right ascension in degrees
 /// * `dec` - Declination in degrees
@@ -47,6 +66,10 @@ pub fn geocentric_distance(location: &Location) -> f64 {
 ///
 /// # Returns
 /// Tuple of (corrected_ra, corrected_dec) in degrees
+///
+/// # Errors
+/// - `AstroError::InvalidCoordinate` if RA is outside [0, 360) or Dec outside [-90, 90]
+/// - `AstroError::OutOfRange` if distance_au is not positive
 ///
 /// # Example
 /// ```
@@ -61,7 +84,21 @@ pub fn geocentric_distance(location: &Location) -> f64 {
 /// };
 /// 
 /// // Moon's position and distance
-/// let (ra_topo, dec_topo) = diurnal_parallax(45.0, 20.0, 0.00257, dt, &location);
+/// let (ra_topo, dec_topo) = diurnal_parallax(45.0, 20.0, 0.00257, dt, &location).unwrap();
+/// ```
+///
+/// # Error Example
+/// ```
+/// # use chrono::Utc;
+/// # use astro_math::{Location, diurnal_parallax, error::AstroError};
+/// # let location = Location { latitude_deg: 40.0, longitude_deg: -74.0, altitude_m: 0.0 };
+/// // Invalid distance
+/// match diurnal_parallax(45.0, 20.0, -1.0, Utc::now(), &location) {
+///     Err(AstroError::OutOfRange { parameter, .. }) => {
+///         assert_eq!(parameter, "distance_au");
+///     }
+///     _ => panic!("Expected error"),
+/// }
 /// ```
 pub fn diurnal_parallax(
     ra: f64,
@@ -69,7 +106,17 @@ pub fn diurnal_parallax(
     distance_au: f64,
     datetime: DateTime<Utc>,
     location: &Location,
-) -> (f64, f64) {
+) -> Result<(f64, f64)> {
+    validate_ra(ra)?;
+    validate_dec(dec)?;
+    if distance_au <= 0.0 {
+        return Err(crate::error::AstroError::OutOfRange {
+            parameter: "distance_au",
+            value: distance_au,
+            min: f64::MIN_POSITIVE,
+            max: f64::MAX,
+        });
+    }
     let lst_hours = location.local_sidereal_time(datetime);
     let lst_deg = lst_hours * 15.0;
     
@@ -112,10 +159,14 @@ pub fn diurnal_parallax(
         ra_corrected
     };
     
-    (ra_normalized, dec_corrected)
+    Ok((ra_normalized, dec_corrected))
 }
 
 /// Calculates annual parallax for stars.
+///
+/// Annual parallax is the apparent shift in a star's position as Earth orbits the Sun.
+/// This effect is only measurable for relatively nearby stars and is the primary method
+/// for determining stellar distances.
 ///
 /// # Arguments
 /// * `ra` - Right ascension in degrees
@@ -126,6 +177,10 @@ pub fn diurnal_parallax(
 /// # Returns
 /// Tuple of (corrected_ra, corrected_dec) in degrees
 ///
+/// # Errors
+/// - `AstroError::InvalidCoordinate` if RA is outside [0, 360) or Dec outside [-90, 90]
+/// - `AstroError::OutOfRange` if parallax_mas is not positive
+///
 /// # Example
 /// ```
 /// use chrono::{TimeZone, Utc};
@@ -133,14 +188,37 @@ pub fn diurnal_parallax(
 ///
 /// let dt = Utc.with_ymd_and_hms(2024, 8, 4, 0, 0, 0).unwrap();
 /// // Proxima Centauri with parallax of 768.5 mas
-/// let (ra_corrected, dec_corrected) = annual_parallax(217.42894, -62.67948, 768.5, dt);
+/// let (ra_corrected, dec_corrected) = annual_parallax(217.42894, -62.67948, 768.5, dt).unwrap();
+/// ```
+///
+/// # Error Example
+/// ```
+/// # use chrono::Utc;
+/// # use astro_math::{annual_parallax, error::AstroError};
+/// // Invalid parallax
+/// match annual_parallax(180.0, 0.0, 0.0, Utc::now()) {
+///     Err(AstroError::OutOfRange { parameter, .. }) => {
+///         assert_eq!(parameter, "parallax_mas");
+///     }
+///     _ => panic!("Expected error"),
+/// }
 /// ```
 pub fn annual_parallax(
     ra: f64,
     dec: f64,
     parallax_mas: f64,
     datetime: DateTime<Utc>,
-) -> (f64, f64) {
+) -> Result<(f64, f64)> {
+    validate_ra(ra)?;
+    validate_dec(dec)?;
+    if parallax_mas <= 0.0 {
+        return Err(crate::error::AstroError::OutOfRange {
+            parameter: "parallax_mas",
+            value: parallax_mas,
+            min: f64::MIN_POSITIVE,
+            max: f64::MAX,
+        });
+    }
     let jd = julian_date(datetime);
     let t = (jd - 2451545.0) / 36525.0; // Julian centuries from J2000
     
@@ -173,7 +251,7 @@ pub fn annual_parallax(
     let delta_ra = parallax_rad * (sun_lon_rad.cos() * ra_rad.sin() - sun_lon_rad.sin() * ra_rad.cos()) / cos_dec;
     let delta_dec = parallax_rad * (sun_lon_rad.sin() * sin_dec * ra_rad.sin() + sun_lon_rad.cos() * sin_dec * ra_rad.cos());
     
-    (ra + delta_ra.to_degrees(), dec + delta_dec.to_degrees())
+    Ok((ra + delta_ra.to_degrees(), dec + delta_dec.to_degrees()))
 }
 
 #[cfg(test)]
@@ -214,7 +292,7 @@ mod tests {
         };
         
         // Moon at moderate altitude
-        let (ra_topo, dec_topo) = diurnal_parallax(45.0, 30.0, 0.00257, dt, &location);
+        let (ra_topo, dec_topo) = diurnal_parallax(45.0, 30.0, 0.00257, dt, &location).unwrap();
         
         // Should show measurable parallax
         assert!((ra_topo - 45.0).abs() < 1.0); // Less than 1 degree
@@ -232,7 +310,7 @@ mod tests {
         };
         
         // Object at 1000 AU
-        let (ra_topo, dec_topo) = diurnal_parallax(45.0, 30.0, 1000.0, dt, &location);
+        let (ra_topo, dec_topo) = diurnal_parallax(45.0, 30.0, 1000.0, dt, &location).unwrap();
         
         // Should show negligible parallax
         assert!((ra_topo - 45.0).abs() < 0.001);
@@ -243,7 +321,7 @@ mod tests {
     fn test_annual_parallax() {
         // Test Proxima Centauri
         let dt = Utc.with_ymd_and_hms(2024, 8, 4, 0, 0, 0).unwrap();
-        let (ra_corrected, dec_corrected) = annual_parallax(217.42894, -62.67948, 768.5, dt);
+        let (ra_corrected, dec_corrected) = annual_parallax(217.42894, -62.67948, 768.5, dt).unwrap();
         
         // Should show small but measurable correction
         assert!((ra_corrected - 217.42894).abs() < 0.001);

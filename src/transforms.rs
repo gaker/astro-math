@@ -1,3 +1,24 @@
+//! Coordinate transformations between different astronomical reference frames.
+//!
+//! This module provides transformations between equatorial (RA/Dec) and horizontal 
+//! (Alt/Az) coordinate systems. All functions properly handle error cases and validate
+//! input coordinates.
+//!
+//! # Coordinate Systems
+//!
+//! - **Equatorial**: Fixed relative to the stars
+//!   - Right Ascension (RA): 0° to 360° measured eastward along celestial equator
+//!   - Declination (Dec): -90° to +90° measured from celestial equator
+//!
+//! - **Horizontal**: Fixed relative to observer on Earth
+//!   - Altitude: -90° to +90° above horizon
+//!   - Azimuth: 0° to 360° clockwise from north
+//!
+//! # Error Handling
+//!
+//! All functions validate their inputs and return `Result<T>` types. Common errors:
+//! - `AstroError::InvalidCoordinate` for out-of-range RA or Dec values
+
 use crate::location::Location;
 use crate::error::{Result, validate_ra, validate_dec};
 use chrono::{DateTime, Utc};
@@ -25,6 +46,12 @@ use std::f64::consts::PI;
 /// A tuple `(altitude_deg, azimuth_deg)` in degrees:
 /// - `altitude_deg`: Elevation above horizon (−90° to +90°)
 /// - `azimuth_deg`: Degrees clockwise from true north (0° = North, 90° = East, etc.)
+///
+/// # Errors
+///
+/// Returns `Err(AstroError::InvalidCoordinate)` if:
+/// - `ra_deg` is outside [0, 360)
+/// - `dec_deg` is outside [-90, 90]
 ///
 /// # Formulae
 ///
@@ -58,6 +85,23 @@ use std::f64::consts::PI;
 /// // These will match Stellarium/Astropy to within ~0.1°
 /// assert!(alt > 0.0 && alt < 10.0);
 /// assert!(az > 300.0 && az < 360.0);
+/// ```
+///
+/// # Error Example
+///
+/// ```
+/// # use chrono::{Utc, TimeZone};
+/// # use astro_math::{Location, ra_dec_to_alt_az, error::AstroError};
+/// # let dt = Utc::now();
+/// # let loc = Location { latitude_deg: 40.0, longitude_deg: -74.0, altitude_m: 0.0 };
+/// // Invalid RA (must be < 360)
+/// match ra_dec_to_alt_az(400.0, 45.0, dt, &loc) {
+///     Err(AstroError::InvalidCoordinate { coord_type, value, .. }) => {
+///         assert_eq!(coord_type, "RA");
+///         assert_eq!(value, 400.0);
+///     }
+///     _ => panic!("Expected error"),
+/// }
 /// ```
 pub fn ra_dec_to_alt_az(
     ra_deg: f64,

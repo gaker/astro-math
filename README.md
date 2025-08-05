@@ -11,11 +11,11 @@ A comprehensive astronomy library for Rust, implementing algorithms from Jean Me
 ### Core Functionality
 - **Time** – Julian Date conversions, J2000 epoch calculations
 - **Sidereal Time** – GMST, LMST, and Apparent Sidereal Time
-- **Location** – Observer coordinates with DMS parsing and LST calculation
+- **Location** – Observer coordinates with **ultimate coordinate parsing** and LST calculation
 - **Coordinate Transforms** – RA/Dec ↔ Alt/Az conversions
 - **Projection** – Gnomonic/TAN projection for astrometry
 
-### New Features
+### Advanced Features
 - **Precession** – Convert coordinates between different epochs (J2000 ↔ current date)
 - **Parallax** – Diurnal and annual parallax corrections
 - **Atmospheric Refraction** – Multiple refraction models (Bennett, Saemundsson, radio)
@@ -23,6 +23,17 @@ A comprehensive astronomy library for Rust, implementing algorithms from Jean Me
 - **Rise/Set/Transit** – Calculate rise, set, and meridian transit times
 - **Galactic Coordinates** – Convert between equatorial and galactic coordinate systems
 - **Airmass** – Multiple airmass formulas for extinction calculations
+
+### Ultimate Coordinate Parsing
+The library features the most comprehensive coordinate parsing system available, handling virtually any format users might input:
+
+- **Decimal Degrees**: `40.7128`, `40.7128N`, `N40.7128`, `40.7128 North`
+- **DMS Formats**: `40°42'46"`, `40 42 46`, `40:42:46`, `40-42-46`, `40d42m46s`
+- **Unicode Symbols**: `40°42′46″` (proper Unicode prime/double-prime)
+- **HMS Longitude**: `4h 56m 27s W`, `4:56:27`, `4 hours 56 minutes 27 seconds`
+- **Compact Aviation**: `404246N`, `4042.767N` (DDMMSS, DDMM.mmm formats)
+- **Mixed Formats**: `40d 42' 46"`, extra spaces, case-insensitive
+- **Fuzzy Matching**: Handles typos, mixed separators, various symbols
 
 
 ## Installation
@@ -90,6 +101,42 @@ println!("Orion Nebula J2000: RA={:.3}°, Dec={:.3}°", ra_j2000, dec_j2000);
 println!("Orion Nebula now:   RA={:.3}°, Dec={:.3}°", ra_now, dec_now);
 ```
 
+### Ultimate Coordinate Parsing
+
+```rust
+use astro_math::location::Location;
+
+// The parser handles virtually any coordinate format!
+
+// Decimal degrees with compass directions
+let loc = Location::parse("40.7128 N", "74.0060 W", 10.0).unwrap();
+assert_eq!(loc.latitude_deg, 40.7128);
+assert_eq!(loc.longitude_deg, -74.0060);
+
+// Traditional DMS with symbols  
+let loc = Location::parse("40°42'46\"N", "74°0'21.6\"W", 10.0).unwrap();
+
+// Unicode symbols
+let loc = Location::parse("40°42′46″", "-74°00′21.6″", 10.0).unwrap();
+
+// Various separators
+let loc = Location::parse("40:42:46", "-74-00-21.6", 10.0).unwrap();
+
+// HMS for longitude
+let loc = Location::parse("51.5074 N", "0h 7m 39.84s W", 0.0).unwrap();
+
+// Compact aviation formats
+let loc = Location::parse("404246N", "0740022W", 10.0).unwrap();  // DDMMSS
+let loc = Location::parse("4042.767N", "07400.360W", 10.0).unwrap();  // DDMM.mmm
+
+// Mixed formats and fuzzy matching
+let loc = Location::parse("40d 42' 46\" North", "74 deg 0 min 21.6 sec west", 10.0).unwrap();
+
+// Handles edge cases like negative zero
+let loc = Location::parse("-00 30 00", "000 00 00", 0.0).unwrap();
+assert_eq!(loc.latitude_deg, -0.5);
+```
+
 ### Rise, Set, and Transit Times
 
 ```rust
@@ -125,6 +172,7 @@ if let Some((rise, transit, set)) = rise_transit_set(ra, dec, today, &location, 
 
 Check out the `examples/` directory for comprehensive examples:
 
+- `coordinate_parsing.rs` - Ultimate coordinate parsing demo (27+ formats!)
 - `precession.rs` - Coordinate precession between epochs
 - `parallax.rs` - Diurnal and annual parallax corrections
 - `refraction.rs` - Atmospheric refraction models
@@ -136,6 +184,7 @@ Check out the `examples/` directory for comprehensive examples:
 Run examples with:
 
 ```bash
+cargo run --example coordinate_parsing
 cargo run --example moon
 cargo run --example rise_set
 ```
@@ -146,6 +195,14 @@ cargo run --example rise_set
 
 - `julian_date(datetime)` - Convert DateTime to Julian Date
 - `j2000_days(datetime)` - Days since J2000.0 epoch
+
+### Location and Coordinate Parsing
+
+- `Location::parse(lat_str, lon_str, alt_m)` - Parse any coordinate format
+- `Location::from_dms(lat_str, lon_str, alt_m)` - Traditional DMS parsing
+- `location.local_sidereal_time(datetime)` - Calculate local sidereal time
+- `location.latitude_dms()` - Format latitude as DMS string
+- `location.longitude_dms()` - Format longitude as DMS string
 
 ### Coordinate Transformations
 

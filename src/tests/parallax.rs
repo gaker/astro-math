@@ -38,7 +38,7 @@ fn test_moon_parallax_horizon() {
     let lst_hours = location.local_sidereal_time(dt);
     let ra_horizon = lst_hours * 15.0 - 90.0; // 90 degrees from meridian
     
-    let (ra_topo, _) = diurnal_parallax(ra_horizon, 0.0, 0.00257, dt, &location);
+    let (ra_topo, _) = diurnal_parallax(ra_horizon, 0.0, 0.00257, dt, &location).unwrap();
     
     // Parallax effect should be detectable
     let parallax = (ra_topo - ra_horizon).abs();
@@ -56,8 +56,8 @@ fn test_annual_parallax_maximum() {
     let dec = 4.693;
     let parallax = 546.0; // mas
     
-    let (ra1, dec1) = annual_parallax(ra, dec, parallax, dt1);
-    let (ra2, dec2) = annual_parallax(ra, dec, parallax, dt2);
+    let (ra1, dec1) = annual_parallax(ra, dec, parallax, dt1).unwrap();
+    let (ra2, dec2) = annual_parallax(ra, dec, parallax, dt2).unwrap();
     
     // Should see variation between the two dates
     assert!((ra1 - ra2).abs() > 0.0 || (dec1 - dec2).abs() > 0.0);
@@ -77,10 +77,10 @@ fn test_parallax_normalization() {
     };
     
     // Test with RA near 0/360 boundary
-    let (ra1, _) = diurnal_parallax(359.9, 45.0, 0.1, dt, &location);
+    let (ra1, _) = diurnal_parallax(359.9, 45.0, 0.1, dt, &location).unwrap();
     assert!(ra1 >= 0.0 && ra1 < 360.0);
     
-    let (ra2, _) = diurnal_parallax(0.1, 45.0, 0.1, dt, &location);
+    let (ra2, _) = diurnal_parallax(0.1, 45.0, 0.1, dt, &location).unwrap();
     assert!(ra2 >= 0.0 && ra2 < 360.0);
 }
 
@@ -95,6 +95,18 @@ fn test_parallax_ra_else_branch() {
     };
     
     // Test with RA that doesn't need normalization
-    let (ra, _) = diurnal_parallax(180.0, 0.0, 1.0, dt, &location);
+    let (ra, _) = diurnal_parallax(180.0, 0.0, 1.0, dt, &location).unwrap();
     assert!(ra >= 0.0 && ra < 360.0);
+}
+
+#[test]
+fn test_annual_parallax_normalization() {
+    let dt = Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
+    
+    // Test RA values near boundaries that could trigger normalization
+    let (ra_norm, _) = annual_parallax(359.99, 0.0, 0.001, dt).unwrap();
+    assert!(ra_norm >= 0.0 && ra_norm < 360.0);
+    
+    let (ra_norm, _) = annual_parallax(0.01, 0.0, 0.001, dt).unwrap();
+    assert!(ra_norm >= 0.0 && ra_norm < 360.0);
 }

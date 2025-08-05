@@ -13,10 +13,10 @@ fn main() {
     
     for alt in [0.0, 5.0, 10.0, 20.0, 30.0, 45.0, 60.0, 75.0, 90.0] {
         let z = 90.0 - alt;
-        let am_pp = if alt > 0.0 { airmass_plane_parallel(alt) } else { f64::NAN };
-        let am_young = airmass_young(alt);
-        let am_pickering = airmass_pickering(alt);
-        let am_ky = if alt > 0.0 { airmass_kasten_young(alt) } else { f64::NAN };
+        let am_pp = if alt > 0.0 { airmass_plane_parallel(alt).unwrap() } else { f64::NAN };
+        let am_young = airmass_young(alt).unwrap();
+        let am_pickering = airmass_pickering(alt).unwrap();
+        let am_ky = if alt > 0.0 { airmass_kasten_young(alt).unwrap() } else { f64::NAN };
         
         println!("{:7.1}° | {:11.1}° | {:14.3} | {:5.3} | {:9.3} | {:11.3}",
             alt, z, am_pp, am_young, am_pickering, am_ky);
@@ -43,7 +43,7 @@ fn main() {
     println!("Wavelength | Band    | k (mag/airmass) | Relative to V");
     println!("-----------|---------|-----------------|---------------");
     
-    let k_v = extinction_coefficient_estimate(550.0);
+    let k_v = extinction_coefficient_estimate(550.0).unwrap();
     for (wavelength, band) in [
         (380.0, "U"),
         (450.0, "B"),
@@ -53,7 +53,7 @@ fn main() {
         (1250.0, "J"),
         (2200.0, "K"),
     ] {
-        let k = extinction_coefficient_estimate(wavelength);
+        let k = extinction_coefficient_estimate(wavelength).unwrap();
         println!("{:9.0} nm | {:7} | {:15.3} | {:13.2}",
             wavelength, band, k, k / k_v);
     }
@@ -71,7 +71,7 @@ fn main() {
     let k_v = 0.15; // Typical V-band extinction
     
     for (i, alt) in altitudes.iter().enumerate() {
-        let am = airmass_pickering(*alt);
+        let am = airmass_pickering(*alt).unwrap();
         let extinction = extinction_magnitudes(am, k_v);
         let mag_loss = 2.5 * (10.0_f64.powf(0.4 * extinction)).log10();
         

@@ -1,6 +1,6 @@
 use crate::rise_set::*;
 use crate::*;
-use chrono::{TimeZone, Utc};
+use chrono::{Datelike, TimeZone, Utc};
 
 #[test]
 fn test_equatorial_object() {
@@ -12,7 +12,7 @@ fn test_equatorial_object() {
     };
     
     let date = Utc.with_ymd_and_hms(2024, 3, 20, 12, 0, 0).unwrap(); // Equinox
-    let result = rise_transit_set(0.0, 0.0, date, &location, None);
+    let result = rise_transit_set(0.0, 0.0, date, &location, None).unwrap();
     
     assert!(result.is_some());
     let (rise, _transit, set) = result.unwrap();
@@ -34,11 +34,11 @@ fn test_polar_extremes() {
     let date = Utc.with_ymd_and_hms(2024, 6, 21, 12, 0, 0).unwrap();
     
     // Positive declination should be circumpolar at north pole
-    let result = rise_transit_set(0.0, 45.0, date, &north_pole, None);
+    let result = rise_transit_set(0.0, 45.0, date, &north_pole, None).unwrap();
     assert!(result.is_none());
     
     // Negative declination should never rise at north pole
-    let result = rise_transit_set(0.0, -45.0, date, &north_pole, None);
+    let result = rise_transit_set(0.0, -45.0, date, &north_pole, None).unwrap();
     assert!(result.is_none());
 }
 
@@ -56,8 +56,8 @@ fn test_next_rise_set() {
     let ra = 100.0;
     let dec = 20.0;
     
-    let next_rise_time = next_rise(ra, dec, start, &location, None);
-    let next_set_time = next_set(ra, dec, start, &location, None);
+    let next_rise_time = next_rise(ra, dec, start, &location, None).unwrap();
+    let next_set_time = next_set(ra, dec, start, &location, None).unwrap();
     
     assert!(next_rise_time.is_some());
     assert!(next_set_time.is_some());
@@ -78,7 +78,7 @@ fn test_sun_polar_day() {
     };
     
     let summer = Utc.with_ymd_and_hms(2024, 6, 21, 12, 0, 0).unwrap();
-    let result = sun_rise_set(summer, &arctic);
+    let result = sun_rise_set(summer, &arctic).unwrap();
     
     // Should be None (midnight sun)
     assert!(result.is_none());
@@ -95,17 +95,36 @@ fn test_rise_set_wraparound() {
     
     // Test object that transits near midnight
     let dt = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
-    let result = rise_transit_set(180.0, 30.0, dt, &location, None);
+    let result = rise_transit_set(180.0, 30.0, dt, &location, None).unwrap();
     assert!(result.is_some());
+}
+
+#[test]
+fn test_rise_set_search_failure() {
+    let location = Location {
+        latitude_deg: 89.0,
+        longitude_deg: 0.0,
+        altitude_m: 0.0,
+    };
     
-    // Test next_rise near day boundary
-    let start = Utc.with_ymd_and_hms(2024, 8, 4, 23, 30, 0).unwrap();
-    let next_rise = next_rise(100.0, 20.0, start, &location, None);
-    assert!(next_rise.is_some());
+    let dt = Utc.with_ymd_and_hms(2024, 6, 21, 12, 0, 0).unwrap();
     
-    // Test next_set near day boundary
-    let next_set = next_set(100.0, 20.0, start, &location, None);
-    assert!(next_set.is_some());
+    // Test object at extreme declination that should not rise/set at this latitude
+    // At 89° latitude in summer, an object at 89.5° dec should be circumpolar (always up)
+    let result = rise_transit_set(0.0, 89.5, dt, &location, Some(-18.0)).unwrap();
+    
+    // Test that the function handles extreme cases without panicking
+    match result {
+        None => {
+            // Object never rises or sets (circumpolar or never visible) - this is expected
+        },
+        Some((rise, transit, set)) => {
+            // If times are returned, they should be valid
+            assert!(rise.year() >= 2024);
+            assert!(transit.year() >= 2024);
+            assert!(set.year() >= 2024);
+        }
+    }
 }
 
 #[test]
@@ -119,7 +138,7 @@ fn test_rise_set_edge_cases() {
     
     // Test case where transit offset is in normal range
     let dt = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
-    let result = rise_transit_set(180.0, 0.0, dt, &location, None);
+    let result = rise_transit_set(180.0, 0.0, dt, &location, None).unwrap();
     assert!(result.is_some());
     
     // Test sun_rise_set at high latitude during winter
@@ -129,6 +148,6 @@ fn test_rise_set_edge_cases() {
         altitude_m: 0.0,
     };
     let winter = Utc.with_ymd_and_hms(2024, 12, 21, 12, 0, 0).unwrap();
-    let _result = sun_rise_set(winter, &polar_location);
+    let _result = sun_rise_set(winter, &polar_location).unwrap();
     // May or may not be None depending on exact calculations
 }

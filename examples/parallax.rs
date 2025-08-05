@@ -23,7 +23,7 @@ fn main() {
     let moon_dec = 20.0;
     let moon_distance_au = 0.00257; // ~384,400 km
     
-    let (ra_topo, dec_topo) = diurnal_parallax(moon_ra, moon_dec, moon_distance_au, dt, &location);
+    let (ra_topo, dec_topo) = diurnal_parallax(moon_ra, moon_dec, moon_distance_au, dt, &location).unwrap();
     
     println!("Moon's Diurnal Parallax:");
     println!("  Geocentric: RA = {:.4}°, Dec = {:.4}°", moon_ra, moon_dec);
@@ -36,7 +36,7 @@ fn main() {
     let asteroid_dec = -15.0;
     let asteroid_distance_au = 0.1; // Very close approach
     
-    let (ra_ast_topo, dec_ast_topo) = diurnal_parallax(asteroid_ra, asteroid_dec, asteroid_distance_au, dt, &location);
+    let (ra_ast_topo, dec_ast_topo) = diurnal_parallax(asteroid_ra, asteroid_dec, asteroid_distance_au, dt, &location).unwrap();
     
     println!("Near-Earth Asteroid Diurnal Parallax (0.1 AU):");
     println!("  Geocentric: RA = {:.4}°, Dec = {:.4}°", asteroid_ra, asteroid_dec);
@@ -52,9 +52,9 @@ fn main() {
     let proxima_parallax = 768.5; // milliarcseconds
     
     let (ra_jan, dec_jan) = annual_parallax(proxima_ra, proxima_dec, proxima_parallax, 
-        Utc.with_ymd_and_hms(2024, 1, 15, 0, 0, 0).unwrap());
+        Utc.with_ymd_and_hms(2024, 1, 15, 0, 0, 0).unwrap()).unwrap();
     let (ra_jul, dec_jul) = annual_parallax(proxima_ra, proxima_dec, proxima_parallax, 
-        Utc.with_ymd_and_hms(2024, 7, 15, 0, 0, 0).unwrap());
+        Utc.with_ymd_and_hms(2024, 7, 15, 0, 0, 0).unwrap()).unwrap();
     
     println!("  Proxima Centauri (π = {:.1} mas):", proxima_parallax);
     println!("    January:  ΔRA = {:.1} mas, ΔDec = {:.1} mas", 
@@ -68,9 +68,9 @@ fn main() {
     let barnard_parallax = 546.0;
     
     let (ra_jan_b, dec_jan_b) = annual_parallax(barnard_ra, barnard_dec, barnard_parallax, 
-        Utc.with_ymd_and_hms(2024, 1, 15, 0, 0, 0).unwrap());
+        Utc.with_ymd_and_hms(2024, 1, 15, 0, 0, 0).unwrap()).unwrap();
     let (ra_jul_b, dec_jul_b) = annual_parallax(barnard_ra, barnard_dec, barnard_parallax, 
-        Utc.with_ymd_and_hms(2024, 7, 15, 0, 0, 0).unwrap());
+        Utc.with_ymd_and_hms(2024, 7, 15, 0, 0, 0).unwrap()).unwrap();
     
     println!("\n  Barnard's Star (π = {:.1} mas):", barnard_parallax);
     println!("    January:  ΔRA = {:.1} mas, ΔDec = {:.1} mas", 

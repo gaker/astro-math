@@ -1,7 +1,27 @@
 //! Galactic coordinate system conversions.
 //!
-//! Converts between equatorial (RA/Dec) and galactic (l, b) coordinates.
-//! Uses the IAU standard transformation.
+//! This module provides transformations between equatorial (RA/Dec) and galactic (l, b) 
+//! coordinate systems using the IAU standard transformation matrix.
+//!
+//! # Coordinate Systems
+//!
+//! - **Equatorial (J2000.0)**:
+//!   - Right Ascension (RA): 0° to 360°
+//!   - Declination (Dec): -90° to +90°
+//!
+//! - **Galactic**:
+//!   - Longitude (l): 0° to 360° (measured from galactic center)
+//!   - Latitude (b): -90° to +90° (measured from galactic plane)
+//!
+//! # Error Handling
+//!
+//! All functions validate their inputs and return `Result<T>` types:
+//! - `AstroError::InvalidCoordinate` for out-of-range values
+//!
+//! # References
+//!
+//! - Reid & Brunthaler (2004) for transformation matrix
+//! - IAU standard galactic coordinate system definition
 
 use std::f64::consts::PI;
 use crate::error::{Result, validate_ra, validate_dec};
@@ -17,6 +37,12 @@ use crate::error::{Result, validate_ra, validate_dec};
 /// * l = Galactic longitude (0-360°)
 /// * b = Galactic latitude (-90° to +90°)
 ///
+/// # Errors
+/// 
+/// Returns `Err(AstroError::InvalidCoordinate)` if:
+/// - `ra` is outside [0, 360)
+/// - `dec` is outside [-90, 90]
+///
 /// # Example
 /// ```
 /// use astro_math::equatorial_to_galactic;
@@ -25,6 +51,19 @@ use crate::error::{Result, validate_ra, validate_dec};
 /// let (l, b) = equatorial_to_galactic(266.405, -28.936).unwrap();
 /// assert!((l - 0.0).abs() < 0.1);
 /// assert!((b - 0.0).abs() < 0.1);
+/// ```
+///
+/// # Error Example
+/// ```
+/// # use astro_math::{equatorial_to_galactic, error::AstroError};
+/// // Invalid declination
+/// match equatorial_to_galactic(180.0, 95.0) {
+///     Err(AstroError::InvalidCoordinate { coord_type, value, .. }) => {
+///         assert_eq!(coord_type, "Declination");
+///         assert_eq!(value, 95.0);
+///     }
+///     _ => panic!("Expected error"),
+/// }
 /// ```
 pub fn equatorial_to_galactic(ra: f64, dec: f64) -> Result<(f64, f64)> {
     // Validate inputs
@@ -73,11 +112,18 @@ pub fn equatorial_to_galactic(ra: f64, dec: f64) -> Result<(f64, f64)> {
 /// Converts galactic coordinates to equatorial coordinates.
 ///
 /// # Arguments
-/// * `l` - Galactic longitude in degrees
+/// * `l` - Galactic longitude in degrees (any value, will be normalized to [0, 360))
 /// * `b` - Galactic latitude in degrees
 ///
 /// # Returns
 /// Tuple of (ra, dec) in degrees (J2000.0)
+///
+/// # Errors
+///
+/// Returns `Err(AstroError::InvalidCoordinate)` if:
+/// - `b` is outside [-90, 90]
+///
+/// Note: Galactic longitude `l` is automatically normalized to [0, 360) and does not produce errors.
 ///
 /// # Example
 /// ```
@@ -87,6 +133,19 @@ pub fn equatorial_to_galactic(ra: f64, dec: f64) -> Result<(f64, f64)> {
 /// let (ra, dec) = galactic_to_equatorial(0.0, 0.0).unwrap();
 /// assert!((ra - 266.405).abs() < 0.1);
 /// assert!((dec - (-28.936)).abs() < 0.1);
+/// ```
+///
+/// # Error Example
+/// ```
+/// # use astro_math::{galactic_to_equatorial, error::AstroError};
+/// // Invalid galactic latitude
+/// match galactic_to_equatorial(180.0, 100.0) {
+///     Err(AstroError::InvalidCoordinate { coord_type, value, .. }) => {
+///         assert_eq!(coord_type, "Galactic latitude");
+///         assert_eq!(value, 100.0);
+///     }
+///     _ => panic!("Expected error"),
+/// }
 /// ```
 pub fn galactic_to_equatorial(l: f64, b: f64) -> Result<(f64, f64)> {
     // Validate galactic latitude

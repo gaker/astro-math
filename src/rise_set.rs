@@ -1,6 +1,31 @@
 //! Rise, set, and transit time calculations for celestial objects.
+//!
+//! This module calculates when celestial objects rise above and set below
+//! the horizon, as well as their transit times (when they cross the meridian
+//! at their highest point).
+//!
+//! # Key Concepts
+//!
+//! - **Rise**: When an object crosses the horizon moving upward
+//! - **Transit**: When an object crosses the meridian (highest altitude)
+//! - **Set**: When an object crosses the horizon moving downward
+//! - **Circumpolar**: Objects that never set (always above horizon)
+//! - **Never rises**: Objects that never rise above the horizon
+//!
+//! # Standard Altitudes
+//!
+//! The module uses -34 arcminutes (-0.5667°) as the standard altitude for
+//! rise/set calculations, which accounts for:
+//! - Atmospheric refraction (~34')
+//! - Sun's semi-diameter (~16') for solar calculations
+//!
+//! # Error Handling
+//!
+//! All functions validate their inputs and return `Result<T>` types:
+//! - `AstroError::InvalidCoordinate` for out-of-range RA or Dec values
 
 use crate::{Location, julian_date, ra_dec_to_alt_az};
+use crate::error::{Result, validate_ra, validate_dec};
 use chrono::{DateTime, Datelike, Duration, TimeZone, Utc};
 
 /// Standard altitude for rise/set calculations (accounting for refraction and semi-diameter)
@@ -19,14 +44,38 @@ pub const SUN_SEMI_DIAMETER: f64 = 0.2667; // 16 arcminutes
 /// * `altitude_deg` - Altitude for rise/set (default: -0.5667° for refraction)
 ///
 /// # Returns
-/// Option of (rise_time, transit_time, set_time) or None if object is circumpolar/never rises
+/// - `Ok(Some((rise, transit, set)))` - Times in UTC
+/// - `Ok(None)` - Object is circumpolar or never rises
+///
+/// # Errors
+/// Returns `Err(AstroError::InvalidCoordinate)` if:
+/// - `ra` is outside [0, 360)
+/// - `dec` is outside [-90, 90]
+///
+/// # Example
+/// ```
+/// # use chrono::{TimeZone, Utc};
+/// # use astro_math::{Location, rise_transit_set};
+/// let location = Location { latitude_deg: 40.0, longitude_deg: -74.0, altitude_m: 0.0 };
+/// let date = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
+/// 
+/// // Calculate for Vega
+/// match rise_transit_set(279.23, 38.78, date, &location, None).unwrap() {
+///     Some((rise, transit, set)) => {
+///         println!("Rise: {}, Transit: {}, Set: {}", rise, transit, set);
+///     }
+///     None => println!("Object is circumpolar or never visible"),
+/// }
+/// ```
 pub fn rise_transit_set(
     ra: f64,
     dec: f64,
     date: DateTime<Utc>,
     location: &Location,
     altitude_deg: Option<f64>,
-) -> Option<(DateTime<Utc>, DateTime<Utc>, DateTime<Utc>)> {
+) -> Result<Option<(DateTime<Utc>, DateTime<Utc>, DateTime<Utc>)>> {
+    validate_ra(ra)?;
+    validate_dec(dec)?;
     let target_alt = altitude_deg.unwrap_or(RISE_SET_ALTITUDE);
     let lat_rad = location.latitude_deg.to_radians();
     let dec_rad = dec.to_radians();
@@ -38,10 +87,10 @@ pub fn rise_transit_set(
     // Check if object is circumpolar or never rises
     if cos_h < -1.0 {
         // Circumpolar (always above horizon)
-        return None;
+        return Ok(None);
     } else if cos_h > 1.0 {
         // Never rises
-        return None;
+        return Ok(None);
     }
     
     let h = cos_h.acos();
@@ -71,10 +120,13 @@ pub fn rise_transit_set(
     let rise_time = noon + Duration::seconds((rise_offset * 3600.0) as i64);
     let set_time = noon + Duration::seconds((set_offset * 3600.0) as i64);
     
-    Some((rise_time, transit_time, set_time))
+    Ok(Some((rise_time, transit_time, set_time)))
 }
 
 /// Calculates next rise time for an object.
+///
+/// Searches forward from the given time to find when the object next
+/// rises above the specified altitude.
 ///
 /// # Arguments
 /// * `ra` - Right ascension in degrees
@@ -84,34 +136,45 @@ pub fn rise_transit_set(
 /// * `altitude_deg` - Altitude for rise (default: -0.5667° for refraction)
 ///
 /// # Returns
-/// Option of next rise time, or None if object never rises
+/// - `Ok(Some(rise_time))` - Next rise time in UTC
+/// - `Ok(None)` - Object never rises
+///
+/// # Errors
+/// Returns `Err(AstroError::InvalidCoordinate)` if:
+/// - `ra` is outside [0, 360)
+/// - `dec` is outside [-90, 90]
 pub fn next_rise(
     ra: f64,
     dec: f64,
     start_time: DateTime<Utc>,
     location: &Location,
     altitude_deg: Option<f64>,
-) -> Option<DateTime<Utc>> {
+) -> Result<Option<DateTime<Utc>>> {
+    validate_ra(ra)?;
+    validate_dec(dec)?;
     // Check current altitude
-    let (_current_alt, _) = ra_dec_to_alt_az(ra, dec, start_time, location).unwrap();
+    let (_current_alt, _) = ra_dec_to_alt_az(ra, dec, start_time, location)?;
     let _target_alt = altitude_deg.unwrap_or(RISE_SET_ALTITUDE);
     
     // Search for rise time over next 2 days
     let mut check_date = start_time.date_naive();
     for _ in 0..2 {
         let noon = Utc.from_utc_datetime(&check_date.and_hms_opt(12, 0, 0).unwrap());
-        if let Some((rise, _, _)) = rise_transit_set(ra, dec, noon, location, altitude_deg) {
+        if let Some((rise, _, _)) = rise_transit_set(ra, dec, noon, location, altitude_deg)? {
             if rise > start_time {
-                return Some(rise);
+                return Ok(Some(rise));
             }
         }
         check_date = check_date.succ_opt().unwrap();
     }
     
-    None
+    Ok(None)
 }
 
 /// Calculates next set time for an object.
+///
+/// Searches forward from the given time to find when the object next
+/// sets below the specified altitude.
 ///
 /// # Arguments
 /// * `ra` - Right ascension in degrees
@@ -121,41 +184,67 @@ pub fn next_rise(
 /// * `altitude_deg` - Altitude for set (default: -0.5667° for refraction)
 ///
 /// # Returns
-/// Option of next set time, or None if object never sets
+/// - `Ok(Some(set_time))` - Next set time in UTC
+/// - `Ok(None)` - Object never sets (circumpolar)
+///
+/// # Errors
+/// Returns `Err(AstroError::InvalidCoordinate)` if:
+/// - `ra` is outside [0, 360)
+/// - `dec` is outside [-90, 90]
 pub fn next_set(
     ra: f64,
     dec: f64,
     start_time: DateTime<Utc>,
     location: &Location,
     altitude_deg: Option<f64>,
-) -> Option<DateTime<Utc>> {
+) -> Result<Option<DateTime<Utc>>> {
+    validate_ra(ra)?;
+    validate_dec(dec)?;
     // Search for set time over next 2 days
     let mut check_date = start_time.date_naive();
     for _ in 0..2 {
         let noon = Utc.from_utc_datetime(&check_date.and_hms_opt(12, 0, 0).unwrap());
-        if let Some((_, _, set)) = rise_transit_set(ra, dec, noon, location, altitude_deg) {
+        if let Some((_, _, set)) = rise_transit_set(ra, dec, noon, location, altitude_deg)? {
             if set > start_time {
-                return Some(set);
+                return Ok(Some(set));
             }
         }
         check_date = check_date.succ_opt().unwrap();
     }
     
-    None
+    Ok(None)
 }
 
 /// Calculates sunrise and sunset times.
+///
+/// Uses a low-precision solar position algorithm suitable for rise/set
+/// calculations. Automatically accounts for atmospheric refraction and
+/// the Sun's semi-diameter.
 ///
 /// # Arguments
 /// * `date` - Date to calculate for
 /// * `location` - Observer's location
 ///
 /// # Returns
-/// Option of (sunrise, sunset) times
+/// - `Ok(Some((sunrise, sunset)))` - Times in UTC
+/// - `Ok(None)` - Sun doesn't rise or set (polar day/night)
+///
+/// # Example
+/// ```
+/// # use chrono::{TimeZone, Utc};
+/// # use astro_math::{Location, sun_rise_set};
+/// let location = Location { latitude_deg: 40.0, longitude_deg: -74.0, altitude_m: 0.0 };
+/// let date = Utc.with_ymd_and_hms(2024, 6, 21, 12, 0, 0).unwrap();
+/// 
+/// if let Some((sunrise, sunset)) = sun_rise_set(date, &location).unwrap() {
+///     let daylight = sunset - sunrise;
+///     println!("Daylight hours: {}", daylight.num_hours());
+/// }
+/// ```
 pub fn sun_rise_set(
     date: DateTime<Utc>,
     location: &Location,
-) -> Option<(DateTime<Utc>, DateTime<Utc>)> {
+) -> Result<Option<(DateTime<Utc>, DateTime<Utc>)>> {
     // Approximate sun position (low precision)
     let jd = julian_date(date);
     let n = jd - 2451545.0;
@@ -166,16 +255,21 @@ pub fn sun_rise_set(
     // Sun's RA and Dec
     let lambda_rad = lambda.to_radians();
     let epsilon = 23.439_f64.to_radians();
-    let ra = lambda_rad.cos().atan2(epsilon.cos() * lambda_rad.sin()).to_degrees();
+    let mut ra = lambda_rad.cos().atan2(epsilon.cos() * lambda_rad.sin()).to_degrees();
     let dec = (epsilon.sin() * lambda_rad.sin()).asin().to_degrees();
+    
+    // Normalize RA to [0, 360)
+    if ra < 0.0 {
+        ra += 360.0;
+    }
     
     // Account for sun's semi-diameter
     let sun_altitude = RISE_SET_ALTITUDE;
     
-    if let Some((rise, _, set)) = rise_transit_set(ra, dec, date, location, Some(sun_altitude)) {
-        Some((rise, set))
+    if let Some((rise, _, set)) = rise_transit_set(ra, dec, date, location, Some(sun_altitude))? {
+        Ok(Some((rise, set)))
     } else {
-        None
+        Ok(None)
     }
 }
 
@@ -195,7 +289,7 @@ mod tests {
         };
         
         let date = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
-        let result = rise_transit_set(37.95, 89.26, date, &location, None);
+        let result = rise_transit_set(37.95, 89.26, date, &location, None).unwrap();
         
         // Should be circumpolar (None)
         assert!(result.is_none());
@@ -211,7 +305,7 @@ mod tests {
         };
         
         let date = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
-        let result = rise_transit_set(83.0, -70.0, date, &location, None);
+        let result = rise_transit_set(83.0, -70.0, date, &location, None).unwrap();
         
         // Should never rise
         assert!(result.is_none());
@@ -227,7 +321,7 @@ mod tests {
         };
         
         let date = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
-        let result = rise_transit_set(279.23, 38.78, date, &location, None);
+        let result = rise_transit_set(279.23, 38.78, date, &location, None).unwrap();
         
         assert!(result.is_some());
         let (rise, transit, set) = result.unwrap();
@@ -248,7 +342,7 @@ mod tests {
         };
         
         let date = Utc.with_ymd_and_hms(2024, 6, 21, 12, 0, 0).unwrap();
-        let result = sun_rise_set(date, &location);
+        let result = sun_rise_set(date, &location).unwrap();
         
         assert!(result.is_some());
         let (sunrise, sunset) = result.unwrap();

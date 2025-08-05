@@ -1,8 +1,51 @@
-//! Error types for astro-math calculations
+//! Error types for astro-math calculations.
+//!
+//! This module provides comprehensive error handling for astronomical calculations,
+//! ensuring that invalid inputs are caught early and reported clearly.
+//!
+//! # Error Types
+//!
+//! The main error type is [`AstroError`], which covers all possible errors in the crate:
+//!
+//! - **Coordinate errors**: Invalid RA, Dec, latitude, or longitude values
+//! - **Range errors**: Values outside acceptable ranges for calculations
+//! - **Format errors**: Invalid string formats (e.g., DMS parsing)
+//! - **Calculation errors**: Mathematical failures or edge cases
+//! - **Projection errors**: Points that cannot be projected
+//!
+//! # Examples
+//!
+//! ```
+//! use astro_math::error::{AstroError, validate_ra, validate_dec};
+//!
+//! // Validate coordinates before use
+//! match validate_ra(400.0) {
+//!     Ok(_) => println!("Valid RA"),
+//!     Err(e) => println!("Error: {}", e), // "Invalid RA: 400 (valid range: [0, 360))"
+//! }
+//!
+//! // Functions return Result types
+//! use astro_math::{ra_dec_to_alt_az, Location};
+//! use chrono::Utc;
+//!
+//! let location = Location { latitude_deg: 40.0, longitude_deg: -74.0, altitude_m: 0.0 };
+//! let result = ra_dec_to_alt_az(400.0, 45.0, Utc::now(), &location);
+//! 
+//! match result {
+//!     Ok((alt, az)) => println!("Alt: {}, Az: {}", alt, az),
+//!     Err(AstroError::InvalidCoordinate { coord_type, value, .. }) => {
+//!         println!("Invalid {}: {}", coord_type, value);
+//!     }
+//!     Err(e) => println!("Other error: {}", e),
+//! }
+//! ```
 
 use thiserror::Error;
 
-/// Main error type for astro-math operations
+/// Main error type for astro-math operations.
+///
+/// This enum represents all possible errors that can occur during astronomical
+/// calculations. Each variant provides specific information about what went wrong.
 #[derive(Debug, Clone, PartialEq, Error)]
 pub enum AstroError {
     /// Invalid coordinate value
@@ -69,10 +112,29 @@ pub enum AstroError {
     },
 }
 
-/// Type alias for Results in this crate
+/// Type alias for Results in this crate.
+/// 
+/// All fallible operations in astro-math return this Result type.
 pub type Result<T> = std::result::Result<T, AstroError>;
 
-/// Validate that a value is within a range
+/// Validate that a value is within a range.
+///
+/// # Arguments
+/// * `value` - The value to check
+/// * `min` - Minimum valid value (inclusive)
+/// * `max` - Maximum valid value (inclusive)
+/// * `parameter` - Name of the parameter for error messages
+///
+/// # Errors
+/// Returns `AstroError::OutOfRange` if the value is outside [min, max].
+///
+/// # Example
+/// ```
+/// use astro_math::error::validate_range;
+/// 
+/// assert!(validate_range(45.0, 0.0, 90.0, "altitude").is_ok());
+/// assert!(validate_range(100.0, 0.0, 90.0, "altitude").is_err());
+/// ```
 #[inline]
 pub fn validate_range(value: f64, min: f64, max: f64, parameter: &'static str) -> Result<()> {
     if value < min || value > max {
@@ -82,7 +144,22 @@ pub fn validate_range(value: f64, min: f64, max: f64, parameter: &'static str) -
     }
 }
 
-/// Validate right ascension (0 <= RA < 360)
+/// Validate right ascension (0 <= RA < 360).
+///
+/// Right ascension must be in the range [0, 360) degrees.
+///
+/// # Errors
+/// Returns `AstroError::InvalidCoordinate` if RA is outside the valid range.
+///
+/// # Example
+/// ```
+/// use astro_math::error::validate_ra;
+/// 
+/// assert!(validate_ra(0.0).is_ok());
+/// assert!(validate_ra(359.9).is_ok());
+/// assert!(validate_ra(360.0).is_err()); // 360 is invalid (use 0 instead)
+/// assert!(validate_ra(-1.0).is_err());
+/// ```
 #[inline]
 pub fn validate_ra(ra: f64) -> Result<()> {
     if ra < 0.0 || ra >= 360.0 {
@@ -96,7 +173,23 @@ pub fn validate_ra(ra: f64) -> Result<()> {
     }
 }
 
-/// Validate declination (-90 <= Dec <= 90)
+/// Validate declination (-90 <= Dec <= 90).
+///
+/// Declination must be in the range [-90, 90] degrees.
+///
+/// # Errors
+/// Returns `AstroError::InvalidCoordinate` if Dec is outside the valid range.
+///
+/// # Example
+/// ```
+/// use astro_math::error::validate_dec;
+/// 
+/// assert!(validate_dec(0.0).is_ok());
+/// assert!(validate_dec(90.0).is_ok());
+/// assert!(validate_dec(-90.0).is_ok());
+/// assert!(validate_dec(91.0).is_err());
+/// assert!(validate_dec(-91.0).is_err());
+/// ```
 #[inline]
 pub fn validate_dec(dec: f64) -> Result<()> {
     if dec < -90.0 || dec > 90.0 {

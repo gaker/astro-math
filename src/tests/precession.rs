@@ -61,3 +61,12 @@ fn test_precession_ra_else_branches() {
     let (ra2, _) = precess_j2000_to_date(180.0, 0.0, dt).unwrap();
     assert!(ra2 >= 0.0 && ra2 < 360.0);
 }
+
+#[test]
+fn test_precession_ra_normalization_edge_cases() {
+    let dt = Utc.with_ymd_and_hms(2050, 1, 1, 0, 0, 0).unwrap();
+    
+    // Test RA near 360 boundary
+    let (ra_norm, _) = precess_date_to_j2000(359.99, 0.0, dt).unwrap();
+    assert!(ra_norm >= 0.0 && ra_norm < 360.0);
+}
