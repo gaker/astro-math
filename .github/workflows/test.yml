@@ -2,7 +2,7 @@ name: Rust CI
 
 on:
   push:
-    branches: [main]
+    branches: ['**']  # Run on all branches
   pull_request:
     branches: [main]
 
@@ -62,8 +62,62 @@ jobs:
         run: cargo tarpaulin --ignore-tests --out Xml --verbose
 
       - name: Upload coverage to Codecov
+        if: github.ref == 'refs/heads/main'  # Only upload coverage from main branch
         uses: codecov/codecov-action@v3
         with:
           files: cobertura.xml
+          flags: rust
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  test-python:
+    name: Python Bindings Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov numpy
+
+      - name: Build and install package
+        uses: PyO3/maturin-action@v1
+        with:
+          working-directory: astro-math-py
+          command: build
+          args: --release --out dist
+          
+      - name: Install built wheel
+        run: |
+          pip install astro-math-py/dist/*.whl
+
+      - name: Run Python tests
+        run: |
+          cd astro-math-py
+          python -m pytest tests/ -v --cov=astro_math --cov-report=xml
+
+      - name: Upload Python coverage
+        if: matrix.python-version == '3.11' && github.ref == 'refs/heads/main'  # Only from main
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./astro-math-py/coverage.xml
+          flags: python
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

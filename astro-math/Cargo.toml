@@ -1,0 +1,39 @@
+[package]
+name = "astro-math"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+description = "Astronomy math algorithms for telescope control and sky transforms"
+keywords = ["astronomy", "astrometry", "sidereal", "astrophysics", "coordinates"]
+categories = ["science", "aerospace", "data-structures"]
+
+[dependencies]
+chrono = { workspace = true, features = ["clock"] }
+thiserror = { workspace = true }
+regex = "1.10"
+erfars = "0.1.0"
+rayon = "1.8"
+ndarray = "0.15"
+nalgebra = "0.32"
+memmap2 = "0.9"
+indicatif = "0.17"
+num_cpus = "1.16"
+statrs = "0.17"
+num-traits = "0.2"
+num-complex = "0.4"
+rand = { version = "0.8", optional = true }
+rand_distr = { version = "0.4", optional = true }
+
+[dev-dependencies]
+approx = "0.5"
+criterion = { version = "0.5", features = ["html_reports"] }
+rand = "0.8"
+rand_distr = "0.4"
+
+[features]
+default = []
+generator = ["rand", "rand_distr"]
+

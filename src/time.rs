@@ -1,46 +1,6 @@
-//! Time conversions and Julian Date calculations.
-//!
-//! This module provides essential time conversion functions for astronomical calculations,
-//! primarily focused on Julian Dates - the standard continuous time system used in astronomy.
-//!
-//! # Julian Dates
-//!
-//! The Julian Date (JD) system is a continuous count of days since noon UTC on January 1, 4713 BCE
-//! in the proleptic Julian calendar. It provides several advantages for astronomical calculations:
-//!
-//! - **Continuous**: No gaps, leap years, or calendar reforms to worry about
-//! - **Decimal**: Fractional days represent time of day (0.5 = midnight UTC)
-//! - **Universal**: Used by all major ephemerides and astronomical software
-//! - **Precise**: Can represent any moment in recorded history
-//!
-//! # Key Epochs
-//!
-//! - **JD 0**: January 1, 4713 BCE at noon UTC (Julian calendar)
-//! - **JD 2451545.0**: J2000.0 epoch (January 1, 2000 at noon TT)
-//! - **Modified Julian Date (MJD)**: JD - 2400000.5 (starts at midnight)
-//!
-//! # Examples
-//!
-//! ```
-//! use chrono::{Utc, TimeZone};
-//! use astro_math::time::{julian_date, j2000_days};
-//!
-//! // Convert current time to Julian Date
-//! let now = Utc::now();
-//! let jd = julian_date(now);
-//! println!("Current Julian Date: {:.5}", jd);
-//!
-//! // Days since J2000.0
-//! let days = j2000_days(now);
-//! println!("Days since J2000.0: {:.5}", days);
-//! ```
-
 use chrono::{DateTime, Datelike, Timelike, Utc};
 
-/// Julian Date (JD) of the J2000.0 epoch: 2000 January 1.5 TT.
-///
-/// This is the standard reference epoch for modern astronomical calculations.
-/// Most star catalogs, ephemerides, and orbital elements are referenced to this epoch.
+/// Julian Date (JD) of the J2000.0 epoch: 2000 January 1.5 TT
 pub const JD2000: f64 = 2451545.0;
 
 /// Converts a UTC datetime to a Julian Date (JD).

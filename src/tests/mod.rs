@@ -1,13 +1,4 @@
-pub mod airmass;
-pub mod error_paths;
-pub mod galactic;
 pub mod location;
-pub mod moon;
-pub mod parallax;
-pub mod parsing;
-pub mod precession;
-pub mod refraction;
-pub mod rise_set;
 pub mod sidereal;
 pub mod time;
 pub mod transforms;

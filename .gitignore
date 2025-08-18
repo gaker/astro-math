@@ -1,2 +1,15 @@
 tarpaulin-report.html
-target/*
+target/
+Cargo.lock
+.ipynb_checkpoints/
+build_rs_cov.profraw
+
+# Python
+__pycache__/
+*.so
+.venv/
+dist/
+*.egg-info/
+
+# OS
+.DS_Store

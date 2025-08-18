@@ -1,0 +1,5 @@
+[default]
+workspace = true
+timeout = "120s"
+exclude-files = ["astro-math-py/*", "benchmarks/*", "*/build.rs", "*/tests/*"]
+packages = ["astro-math"]

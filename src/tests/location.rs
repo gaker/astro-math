@@ -1,16 +1,17 @@
-use crate::location::Location;
-use crate::error::AstroError;
+use crate::location::{Location, ParseError};
 use chrono::{TimeZone, Utc};
 
 const EPSILON: f64 = 1e-3; // ~3.6s sidereal time
 
 #[test]
 fn test_parse_error_display() {
-    let err = AstroError::InvalidDmsFormat {
-        input: "not valid".to_string(),
-        expected: "DD MM SS.s or DD:MM:SS.s or DD°MM'SS.s\"",
-    };
-    assert!(err.to_string().contains("Invalid DMS format"));
+    use crate::location::ParseError;
+
+    let err = ParseError::InvalidFormat;
+    assert_eq!(err.to_string(), "Invalid DMS format");
+
+    let err = ParseError::InvalidNumber;
+    assert_eq!(err.to_string(), "Invalid number in DMS string");
 }
 
 #[test]
@@ -94,7 +95,7 @@ fn test_parse_invalid_from_dms() {
     assert!(result.is_err());
 
     result = Location::from_dms("+xx 00 00", "-92 18 03.2", 0.0);
-    assert!(matches!(result, Err(AstroError::InvalidDmsFormat { .. })));
+    assert!(matches!(result, Err(ParseError::InvalidNumber)));
 
     let cases = [
         ["39 0a 01.7", "-92 18 03.a"],

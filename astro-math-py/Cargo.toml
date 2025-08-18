@@ -1,0 +1,23 @@
+[package]
+name = "astro-math-py"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+description = "Python bindings for astro-math astronomy calculations"
+
+[lib]
+name = "astro_math"
+crate-type = ["cdylib"]
+
+[dependencies]
+astro-math = { path = "../astro-math" }
+pyo3 = { version = "0.22", features = ["extension-module", "chrono"] }
+numpy = "0.22"
+chrono = { workspace = true }
+rayon = "1.10"
+
+[features]
+default = ["pyo3/extension-module"]
