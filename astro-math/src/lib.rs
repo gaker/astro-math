@@ -8,7 +8,8 @@
 //! This library provides everything needed for astronomical calculations:
 //!
 //! ### Time Systems
-//! - [`time`] — Julian Date conversions, J2000 epoch calculations
+//! - [`time`] — Julian Date conversions, J2000 epoch calculations  
+//! - [`time_scales`] — UTC ↔ TT conversions with proper leap second handling
 //! - [`sidereal`] — Greenwich Mean Sidereal Time (GMST), Local Mean/Apparent Sidereal Time
 //!
 //! ### Observer Location  
@@ -40,6 +41,46 @@
 //! - Parallel batch processing with Rayon for coordinate transformations
 //! - ERFA (Essential Routines for Fundamental Astronomy) integration
 //! - Input validation and clear error messages
+//!
+//! ## Architecture Overview
+//!
+//! The library is structured around these core concepts:
+//!
+//! ```text
+//! ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+//! │   Observer      │    │   Celestial      │    │   Corrections   │
+//! │   Location      │───▶│   Coordinates    │───▶│   & Effects     │
+//! │                 │    │                  │    │                 │
+//! └─────────────────┘    └──────────────────┘    └─────────────────┘
+//! ```
+//!
+//! ### 1. Observer Location ([`Location`])
+//! Earth-based observer coordinates with flexible coordinate parsing supporting
+//! 27+ formats (decimal degrees, DMS, HMS, aviation, Unicode symbols).
+//! Handles local sidereal time calculations and coordinate validation.
+//!
+//! ### 2. Time Systems ([`time`], [`time_scales`], [`sidereal`])
+//! - Julian Date conversions and J2000 epoch calculations
+//! - UTC ↔ TT conversions with proper leap second handling  
+//! - Greenwich Mean Sidereal Time (GMST) and Local Sidereal Time (LST)
+//!
+//! ### 3. Coordinate Systems ([`transforms`], [`galactic`], [`projection`])
+//! - RA/Dec ↔ Alt/Az transformations using spherical trigonometry
+//! - Equatorial ↔ Galactic coordinate system conversions
+//! - Gnomonic/TAN projection for astrometry and plate solving
+//!
+//! ### 4. Astrometric Corrections
+//! - [`precession`] — Convert coordinates between epochs (J2000 ↔ current date)
+//! - [`nutation`] — Earth's axis wobble (±18.6" longitude, ±9.2" obliquity)
+//! - [`aberration`] — Annual stellar aberration (±20.5 arcseconds)
+//! - [`proper_motion`] — Linear and rigorous 3D space motion calculations
+//! - [`parallax`] — Diurnal and annual parallax corrections
+//! - [`refraction`] — Atmospheric refraction (Bennett, Saemundsson, radio models)
+//!
+//! ### 5. Solar System Objects ([`sun`], [`moon`], [`rise_set`])
+//! - Solar and lunar position calculations
+//! - Rise, set, and meridian transit times for any celestial object
+//! - Moon phase, illumination, and distance calculations
 //!
 //! ## Accuracy & Standards
 //!
@@ -104,6 +145,7 @@ pub mod rise_set;
 pub mod sidereal;
 pub mod sun;
 pub mod time;
+pub mod time_scales;
 pub mod transforms;
 
 pub use aberration::*;
@@ -120,6 +162,7 @@ pub use refraction::*;
 pub use rise_set::*;
 pub use sidereal::*;
 pub use time::*;
+pub use time_scales::*;
 pub use transforms::*;
 
 #[cfg(test)]

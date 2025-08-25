@@ -131,7 +131,7 @@ pub fn equatorial_to_galactic(ra: f64, dec: f64) -> Result<(f64, f64)> {
 /// ```
 pub fn galactic_to_equatorial(l: f64, b: f64) -> Result<(f64, f64)> {
     // Validate galactic latitude
-    if b < -90.0 || b > 90.0 {
+    if !(-90.0..=90.0).contains(&b) {
         return Err(crate::error::AstroError::InvalidCoordinate {
             coord_type: "Galactic latitude",
             value: b,
@@ -240,7 +240,7 @@ mod tests {
         // Test some known galactic coordinates
         // Sagittarius A* (galactic center)
         let (l, b) = equatorial_to_galactic(266.417, -29.008).unwrap();
-        assert!(l < 0.5 || l > 359.5);
+        assert!(!(0.5..=359.5).contains(&l));
         assert!(b.abs() < 0.1);
         
         // Cygnus X-1

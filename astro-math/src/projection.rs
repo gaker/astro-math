@@ -276,13 +276,13 @@ mod tests {
         
         // Test point that would give negative RA
         let (ra1, _) = tp.pixel_to_ra_dec(1000.0, 512.0).unwrap();
-        assert!(ra1 >= 0.0 && ra1 < 360.0);
+        assert!((0.0..360.0).contains(&ra1));
         
         // Test point that would give RA > 360
         let tp2 = TangentPlane::new(359.0, 0.0, 1.0).unwrap()
             .with_reference_pixel(512.0, 512.0);
         let (ra2, _) = tp2.pixel_to_ra_dec(100.0, 512.0).unwrap();
-        assert!(ra2 >= 0.0 && ra2 < 360.0);
+        assert!((0.0..360.0).contains(&ra2));
     }
     
     #[test]
@@ -293,12 +293,12 @@ mod tests {
         
         // Create a pixel that would result in RA < 0
         let (ra1, _) = tp.pixel_to_ra_dec(2000.0, 512.0).unwrap();
-        assert!(ra1 >= 0.0 && ra1 < 360.0);
+        assert!((0.0..360.0).contains(&ra1));
         
         // Create a pixel that would result in RA > 360
         let tp2 = TangentPlane::new(359.9, 0.0, 1.0).unwrap()
             .with_reference_pixel(512.0, 512.0);
         let (ra2, _) = tp2.pixel_to_ra_dec(100.0, 512.0).unwrap();
-        assert!(ra2 >= 0.0 && ra2 < 360.0);
+        assert!((0.0..360.0).contains(&ra2));
     }
 }

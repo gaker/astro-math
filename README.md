@@ -6,94 +6,97 @@
 [![Crates.io](https://img.shields.io/crates/v/astro-math.svg)](https://crates.io/crates/astro-math)
 [![PyPI](https://img.shields.io/pypi/v/astro-math.svg)](https://pypi.org/project/astro-math/)
 
-A comprehensive astronomy library implementing algorithms from Jean Meeus and other standard references for telescope control, observation planning, and celestial mechanics.
+Fast astronomical calculations in Rust with Python bindings. Built for telescope control, sky surveys, and astronomical data processing.
 
-**Perfect for:** Telescope control software, planetarium applications, observation planning tools, and any astronomy-related project requiring accurate celestial calculations.
+## Installation
 
-**Features:**
-- Professional-grade accuracy (sub-arcsecond precision)
-- Comprehensive coordinate parsing (27+ formats!)
-- High-performance parallel processing with Rayon
-- ERFA integration for maximum accuracy
-- Extensive documentation with examples
-
-## Project Structure
-
-This is a Rust workspace containing:
-
-- **`astro-math/`** - The core Rust library with all astronomical calculations
-- **`astro-math-py/`** - Python bindings using PyO3 and maturin
-
-## Why Choose Astro Math?
-
-- **Accuracy First**: Results match professional software (Astropy, Stellarium) to sub-arcsecond precision  
-- **Developer Friendly**: Comprehensive documentation, examples, and error handling  
-- **Battle Tested**: Extensive test suite with real-world validation  
-- **Performance**: Parallel processing and optimized algorithms  
-- **Standards Compliant**: Implements IAU/SOFA standards via ERFA
-
-## Quick Start
+### Rust
 
 Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-astro-math = "0.1"
-chrono = "0.4"  # For date/time handling
+astro-math = "0.2"
+chrono = "0.4"
 ```
+
+### Python
+
+```bash
+pip install astro-math
+```
+
+Or build from source with maturin:
+
+```bash
+cd astro-math-py
+maturin develop
+```
+
+## Quick Example
 
 ```rust
 use astro_math::{Location, ra_dec_to_alt_az};
 use chrono::Utc;
 
-// Create observer location (supports 27+ coordinate formats!)
-let location = Location::parse("40.7128 N", "74.0060 W", 10.0).unwrap();
+// Parse observer location from various formats
+let location = Location::parse("40.7128 N", "74.0060 W", 10.0)?;
 
-// Convert star coordinates to local alt/az
-let (alt, az) = ra_dec_to_alt_az(279.23, 38.78, Utc::now(), &location).unwrap();
-println!("Vega is at altitude {:.1}°, azimuth {:.1}°", alt, az);
+// Convert celestial coordinates to horizon coordinates
+let (alt, az) = ra_dec_to_alt_az(279.23, 38.78, Utc::now(), &location)?;
+println!("Altitude: {:.2}°, Azimuth: {:.2}°", alt, az);
 ```
 
-## Getting Started
+## Examples
 
-### Rust Library
+The `examples/` directory contains working code for common tasks:
+
+- **`basic_transforms.rs`** - Convert between coordinate systems (RA/Dec ↔ Alt/Az)
+- **`location_parsing.rs`** - Parse coordinates from strings in 25+ formats
+- **`proper_motion.rs`** - Apply stellar proper motion over time
+- **`rise_set_times.rs`** - Calculate when objects rise and set
+- **`moon_phases.rs`** - Moon position, phase, and illumination
+- **`precession.rs`** - Precess coordinates between epochs
+- **`galactic_coords.rs`** - Convert between equatorial and galactic coordinates
+- **`telescope_pointing.rs`** - Real-time telescope coordinate conversion
+- **`batch_processing.rs`** - Process large coordinate datasets efficiently
+
+Run any example:
 
 ```bash
-cd astro-math
-cargo build
-cargo test
-cargo run --example moon
+cargo run --example basic_transforms
 ```
 
-See [astro-math/README.md](astro-math/README.md) for detailed documentation.
+## Features
 
-### Python Bindings
+- **Coordinate Transformations**: RA/Dec ↔ Alt/Az, Galactic, Ecliptic
+- **Location Parsing**: Handles DMS, HMS, decimal degrees, and mixed formats
+- **Time Systems**: Proper UTC/TT conversion with leap second tables
+- **Stellar Motion**: Proper motion, precession, nutation, aberration
+- **Solar System**: Sun/Moon positions, phases, rise/set times
+- **Performance**: Parallel batch processing, optimized algorithms
 
-```bash
-cd astro-math-py
-maturin develop  # For development
-maturin build    # For distribution
-```
+## Validation
 
-## Development
+Tested against AstroPy to ensure accuracy:
 
-To work on both the Rust library and Python bindings:
+- **Coordinate transformations**: Sub-arcsecond agreement
+- **Time calculations**: Microsecond precision
+- **Performance benchmarks**: See `benchmarks/` notebooks for detailed comparisons
 
-```bash
-# Run all tests
-cargo test --workspace
+The Jupyter notebooks in `benchmarks/` show comprehensive testing against AstroPy across thousands of test cases.
 
-# Build everything
-cargo build --workspace
+## Architecture
 
-# Format code
-cargo fmt --all
-```
+- **`astro-math/`** - Core Rust library
+- **`astro-math-py/`** - Python bindings via PyO3
+- **`examples/`** - Rust usage examples
+- **`benchmarks/`** - Performance analysis notebooks
+
+## Contributing
+
+Built using the IAU SOFA algorithms and Jean Meeus formulations. See individual module documentation for implementation details and references.
 
 ## License
 
-Licensed under either of:
-- MIT license
-- Apache License, Version 2.0
-
-at your option.
+MIT OR Apache-2.0

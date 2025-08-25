@@ -36,7 +36,7 @@ fn test_greenwich_mean_sidereal_time() {
     let dt = Utc.with_ymd_and_hms(1987, 4, 10, 0, 0, 0).unwrap();
     let jd = julian_date(dt);
     
-    let gmst_rad = greenwich_mean_sidereal_time(jd, 0.0, jd + 69.184/86400.0, 0.0);
+    let gmst_rad = greenwich_mean_sidereal_time(jd, 0.0, crate::time_scales::utc_to_tt_jd(jd), 0.0);
     let gmst_hours = gmst_rad * 12.0 / std::f64::consts::PI;
     let gmst_normalized = if gmst_hours < 0.0 { gmst_hours + 24.0 } else { gmst_hours % 24.0 };
     
@@ -50,8 +50,8 @@ fn test_greenwich_apparent_sidereal_time() {
     let dt = Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
     let jd = julian_date(dt);
     
-    let gast_rad = greenwich_apparent_sidereal_time(jd, 0.0, jd + 69.184/86400.0, 0.0);
-    let gmst_rad = greenwich_mean_sidereal_time(jd, 0.0, jd + 69.184/86400.0, 0.0);
+    let gast_rad = greenwich_apparent_sidereal_time(jd, 0.0, crate::time_scales::utc_to_tt_jd(jd), 0.0);
+    let gmst_rad = greenwich_mean_sidereal_time(jd, 0.0, crate::time_scales::utc_to_tt_jd(jd), 0.0);
     
     // GAST should differ from GMST by equation of equinoxes (small)
     let diff_rad = (gast_rad - gmst_rad).abs();
@@ -70,7 +70,7 @@ fn test_earth_rotation_angle() {
     let era_rad = earth_rotation_angle(jd, 0.0);
     
     // ERA should be between 0 and 2π
-    assert!(era_rad >= 0.0 && era_rad < 2.0 * std::f64::consts::PI);
+    assert!((0.0..2.0 * std::f64::consts::PI).contains(&era_rad));
 }
 
 #[test]
@@ -114,8 +114,8 @@ fn test_icrs_to_observed_basic() {
     let (az, zd, _ha, _dec, _ra, _eo) = result.unwrap();
     
     // Results should be valid angles
-    assert!(az >= 0.0 && az <= 2.0 * std::f64::consts::PI);
-    assert!(zd >= 0.0 && zd <= std::f64::consts::PI);
+    assert!((0.0..=2.0 * std::f64::consts::PI).contains(&az));
+    assert!((0.0..=std::f64::consts::PI).contains(&zd));
 }
 
 #[test]
@@ -140,8 +140,8 @@ fn test_cirs_to_observed_basic() {
     let (az, zd, _ha, _dec, _ra, _eo) = result.unwrap();
     
     // Results should be valid angles
-    assert!(az >= 0.0 && az <= 2.0 * std::f64::consts::PI);
-    assert!(zd >= 0.0 && zd <= std::f64::consts::PI);
+    assert!((0.0..=2.0 * std::f64::consts::PI).contains(&az));
+    assert!((0.0..=std::f64::consts::PI).contains(&zd));
 }
 
 #[test]
@@ -199,19 +199,19 @@ fn test_precession_matrix_orthogonal() {
     
     // Compute transpose times original
     let mut product = [[0.0; 3]; 3];
-    for i in 0..3 {
-        for j in 0..3 {
-            for k in 0..3 {
-                product[i][j] += matrix[k][i] * matrix[k][j];
+    for (i, row) in product.iter_mut().enumerate() {
+        for (j, cell) in row.iter_mut().enumerate() {
+            for matrix_row in &matrix {
+                *cell += matrix_row[i] * matrix_row[j];
             }
         }
     }
     
     // Should be identity
-    for i in 0..3 {
-        for j in 0..3 {
+    for (i, row) in product.iter().enumerate() {
+        for (j, &cell) in row.iter().enumerate() {
             let expected = if i == j { 1.0 } else { 0.0 };
-            assert!((product[i][j] - expected).abs() < 1e-10,
+            assert!((cell - expected).abs() < 1e-10,
                     "Matrix not orthogonal at [{},{}]: {}", i, j, product[i][j]);
         }
     }

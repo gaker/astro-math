@@ -55,7 +55,7 @@ fn test_ra_dec_to_alt_az_negative_azimuth_wrap() {
 
     let (_alt, az) = transforms::ra_dec_to_alt_az(ra, dec, dt, &loc).unwrap();
 
-    assert!(az >= 0.0 && az <= 360.0, "Azimuth should be normalized to [0, 360), got {}", az);
+    assert!((0.0..=360.0).contains(&az), "Azimuth should be normalized to [0, 360), got {}", az);
 }
 
 #[test]
@@ -102,8 +102,8 @@ fn test_ra_dec_to_alt_az_polar_observer() {
     let (alt, az) = transforms::ra_dec_to_alt_az(ra, dec, dt, &observer).unwrap();
     
     // Should not crash and should give reasonable values
-    assert!(alt >= -90.0 && alt <= 90.0, "Altitude out of range: {}", alt);
-    assert!(az >= 0.0 && az <= 360.0, "Azimuth out of range: {}", az);
+    assert!((-90.0..=90.0).contains(&alt), "Altitude out of range: {}", alt);
+    assert!((0.0..=360.0).contains(&az), "Azimuth out of range: {}", az);
     
     // Polaris from near North Pole should be very high in sky
     assert!(alt > 88.0, "Polaris should be near zenith from latitude 89.9°, got alt={}°", alt);
@@ -124,8 +124,8 @@ fn test_azimuth_negative_normalization() {
     // Test coordinates that might produce negative azimuth before normalization
     let (alt, az) = transforms::ra_dec_to_alt_az(270.0, -30.0, dt, &observer).unwrap();
     
-    assert!(alt >= -90.0 && alt <= 90.0, "Altitude should be valid, got {}", alt);
-    assert!(az >= 0.0 && az < 360.0, "Azimuth should be [0,360), got {}", az);
+    assert!((-90.0..=90.0).contains(&alt), "Altitude should be valid, got {}", alt);
+    assert!((0.0..360.0).contains(&az), "Azimuth should be [0,360), got {}", az);
     
     // From southern hemisphere looking at RA=270 (18h), Dec=-30
     // The object should be visible and have reasonable coordinates
@@ -151,15 +151,15 @@ fn test_ra_dec_to_alt_az_numerical_stability() {
     let (alt, az) = transforms::ra_dec_to_alt_az(ra, dec, dt, &observer).unwrap();
     
     // Should not crash from acos domain error
-    assert!(alt >= -90.0 && alt <= 90.0, "Altitude out of range: {}", alt);
-    assert!(az >= 0.0 && az <= 360.0, "Azimuth out of range: {}", az);
+    assert!((-90.0..=90.0).contains(&alt), "Altitude out of range: {}", alt);
+    assert!((0.0..=360.0).contains(&az), "Azimuth out of range: {}", az);
     
     // Object on celestial equator from equatorial observer on horizon
     assert!(alt.abs() < 1.0, "Object on horizon should have alt ≈ 0°, got {}°", alt);
     // For objects on celestial equator at equator, HA determines azimuth directly
     // This object is 6h after meridian, so it should be in the West
     // But let's just verify it's on the horizon with valid azimuth
-    assert!(az >= 0.0 && az < 360.0, "Azimuth should be valid");
+    assert!((0.0..360.0).contains(&az), "Azimuth should be valid");
 }
 
 #[test]
@@ -230,8 +230,8 @@ fn test_transforms_azimuth_branches() {
     
     // They should be different and valid
     assert!(az_east != az_west, "Objects at different hour angles should have different azimuths");
-    assert!(az_east >= 0.0 && az_east < 360.0, "East azimuth should be valid, got {}°", az_east);
-    assert!(az_west >= 0.0 && az_west < 360.0, "West azimuth should be valid, got {}°", az_west);
+    assert!((0.0..360.0).contains(&az_east), "East azimuth should be valid, got {}°", az_east);
+    assert!((0.0..360.0).contains(&az_west), "West azimuth should be valid, got {}°", az_west);
     
     // At equator with Dec=30°, objects east/west of meridian should have reasonable azimuths
     // We don't enforce east < 180 because at equator with positive dec, east objects can be in NW
@@ -256,7 +256,7 @@ fn test_transforms_negative_azimuth_normalization() {
     let dec = 60.0; // High northern dec
     
     let (_, az) = ra_dec_to_alt_az(ra, dec, dt, &observer).unwrap();
-    assert!(az >= 0.0 && az < 360.0, "Azimuth should be normalized from negative");
+    assert!((0.0..360.0).contains(&az), "Azimuth should be normalized from negative");
 }
 
 #[test]
@@ -280,8 +280,8 @@ fn test_ra_dec_to_alt_az_erfa_basic() {
     ).unwrap();
     
     // Should give valid coordinates
-    assert!(alt >= -90.0 && alt <= 90.0, "Altitude out of range: {}", alt);
-    assert!(az >= 0.0 && az < 360.0, "Azimuth out of range: {}", az);
+    assert!((-90.0..=90.0).contains(&alt), "Altitude out of range: {}", alt);
+    assert!((0.0..360.0).contains(&az), "Azimuth out of range: {}", az);
 }
 
 #[test]
@@ -338,8 +338,8 @@ fn test_ra_dec_to_alt_az_erfa_default_atmosphere() {
         None, None, None
     ).unwrap();
     
-    assert!(alt >= -90.0 && alt <= 90.0);
-    assert!(az >= 0.0 && az < 360.0);
+    assert!((-90.0..=90.0).contains(&alt));
+    assert!((0.0..360.0).contains(&az));
 }
 
 #[test]
@@ -362,8 +362,8 @@ fn test_ra_dec_to_alt_az_erfa_extreme_conditions() {
         Some(680.0), Some(-40.0), Some(0.1)
     ).unwrap();
     
-    assert!(alt >= -90.0 && alt <= 90.0);
-    assert!(az >= 0.0 && az < 360.0);
+    assert!((-90.0..=90.0).contains(&alt));
+    assert!((0.0..360.0).contains(&az));
 }
 
 #[test]
@@ -417,8 +417,8 @@ fn test_ra_dec_to_alt_az_erfa_high_altitude() {
         Some(615.0), Some(2.0), Some(0.2) // Low pressure at altitude
     ).unwrap();
     
-    assert!(alt >= -90.0 && alt <= 90.0);
-    assert!(az >= 0.0 && az < 360.0);
+    assert!((-90.0..=90.0).contains(&alt));
+    assert!((0.0..360.0).contains(&az));
 }
 
 #[test]
@@ -463,7 +463,7 @@ fn test_ra_dec_to_alt_az_erfa_pole_star() {
             "Polaris altitude from 45°N should be ~45°, got {}°", alt_mid);
     
     // Polaris azimuth should be close to North
-    assert!(az_mid < 5.0 || az_mid > 355.0,
+    assert!(!(5.0..=355.0).contains(&az_mid),
             "Polaris azimuth should be near North, got {}°", az_mid);
 }
 
@@ -594,19 +594,19 @@ fn test_alt_az_to_ra_dec_edge_cases() {
     let (ra4, dec4) = alt_az_to_ra_dec(0.0, 270.0, dt, &observer).unwrap(); // West horizon
     
     // All should be valid coordinates
-    assert!(ra1 >= 0.0 && ra1 < 360.0, "North horizon RA should be valid");
-    assert!(dec1 >= -90.0 && dec1 <= 90.0, "North horizon Dec should be valid");
-    assert!(ra2 >= 0.0 && ra2 < 360.0, "East horizon RA should be valid");
-    assert!(dec2 >= -90.0 && dec2 <= 90.0, "East horizon Dec should be valid");
-    assert!(ra3 >= 0.0 && ra3 < 360.0, "South horizon RA should be valid");
-    assert!(dec3 >= -90.0 && dec3 <= 90.0, "South horizon Dec should be valid");
-    assert!(ra4 >= 0.0 && ra4 < 360.0, "West horizon RA should be valid");
-    assert!(dec4 >= -90.0 && dec4 <= 90.0, "West horizon Dec should be valid");
+    assert!((0.0..360.0).contains(&ra1), "North horizon RA should be valid");
+    assert!((-90.0..=90.0).contains(&dec1), "North horizon Dec should be valid");
+    assert!((0.0..360.0).contains(&ra2), "East horizon RA should be valid");
+    assert!((-90.0..=90.0).contains(&dec2), "East horizon Dec should be valid");
+    assert!((0.0..360.0).contains(&ra3), "South horizon RA should be valid");
+    assert!((-90.0..=90.0).contains(&dec3), "South horizon Dec should be valid");
+    assert!((0.0..360.0).contains(&ra4), "West horizon RA should be valid");
+    assert!((-90.0..=90.0).contains(&dec4), "West horizon Dec should be valid");
     
     // Test nadir (altitude = -90)
     let (ra_nadir, dec_nadir) = alt_az_to_ra_dec(-90.0, 0.0, dt, &observer).unwrap();
-    assert!(ra_nadir >= 0.0 && ra_nadir < 360.0, "Nadir RA should be valid");
-    assert!(dec_nadir >= -90.0 && dec_nadir <= 90.0, "Nadir Dec should be valid");
+    assert!((0.0..360.0).contains(&ra_nadir), "Nadir RA should be valid");
+    assert!((-90.0..=90.0).contains(&dec_nadir), "Nadir Dec should be valid");
 }
 
 #[test]
@@ -632,10 +632,10 @@ fn test_alt_az_to_ra_dec_polar_regions() {
     let (ra_s, dec_s) = alt_az_to_ra_dec(80.0, 45.0, dt, &observer_south).unwrap();
     
     // Should not crash and should give valid coordinates
-    assert!(ra_n >= 0.0 && ra_n < 360.0, "Polar north RA should be valid");
-    assert!(dec_n >= -90.0 && dec_n <= 90.0, "Polar north Dec should be valid");
-    assert!(ra_s >= 0.0 && ra_s < 360.0, "Polar south RA should be valid");
-    assert!(dec_s >= -90.0 && dec_s <= 90.0, "Polar south Dec should be valid");
+    assert!((0.0..360.0).contains(&ra_n), "Polar north RA should be valid");
+    assert!((-90.0..=90.0).contains(&dec_n), "Polar north Dec should be valid");
+    assert!((0.0..360.0).contains(&ra_s), "Polar south RA should be valid");
+    assert!((-90.0..=90.0).contains(&dec_s), "Polar south Dec should be valid");
     
     // From North Pole, high altitude objects should have high positive declination
     assert!(dec_n > 70.0, "High object from North Pole should have high Dec");
@@ -693,8 +693,8 @@ fn test_alt_az_to_ra_dec_quadrant_handling() {
         let (ra, dec) = alt_az_to_ra_dec(alt, az, dt, &observer).unwrap();
         
         // Should produce valid coordinates
-        assert!(ra >= 0.0 && ra < 360.0, "RA should be valid for az={}: got {}", az, ra);
-        assert!(dec >= -90.0 && dec <= 90.0, "Dec should be valid for az={}: got {}", az, dec);
+        assert!((0.0..360.0).contains(&ra), "RA should be valid for az={}: got {}", az, ra);
+        assert!((-90.0..=90.0).contains(&dec), "Dec should be valid for az={}: got {}", az, dec);
         
         // Test round-trip accuracy
         let (alt_recovered, az_recovered) = ra_dec_to_alt_az(ra, dec, dt, &observer).unwrap();
@@ -750,9 +750,9 @@ fn test_alt_az_to_ra_dec_circumpolar_objects() {
     let (ra3, dec3) = alt_az_to_ra_dec(30.0, 270.0, dt, &observer).unwrap(); // West, lower
     
     // All should be valid
-    assert!(ra1 >= 0.0 && ra1 < 360.0 && dec1 >= -90.0 && dec1 <= 90.0);
-    assert!(ra2 >= 0.0 && ra2 < 360.0 && dec2 >= -90.0 && dec2 <= 90.0);
-    assert!(ra3 >= 0.0 && ra3 < 360.0 && dec3 >= -90.0 && dec3 <= 90.0);
+    assert!((0.0..360.0).contains(&ra1) && (-90.0..=90.0).contains(&dec1));
+    assert!((0.0..360.0).contains(&ra2) && (-90.0..=90.0).contains(&dec2));
+    assert!((0.0..360.0).contains(&ra3) && (-90.0..=90.0).contains(&dec3));
     
     // Object near north at moderate altitude should have high declination
     assert!(dec1 > 50.0, "High northern object should have high Dec, got {}", dec1);
@@ -791,8 +791,8 @@ fn test_alt_az_to_ra_dec_numerical_stability() {
             let (ra, dec) = result.unwrap();
             assert!(ra.is_finite() && dec.is_finite(), 
                    "Should return finite values for alt={}, az={}: ra={}, dec={}", alt, az, ra, dec);
-            assert!(ra >= 0.0 && ra < 360.0, "RA should be valid");
-            assert!(dec >= -90.0 && dec <= 90.0, "Dec should be valid");
+            assert!((0.0..360.0).contains(&ra), "RA should be valid");
+            assert!((-90.0..=90.0).contains(&dec), "Dec should be valid");
         }
     }
 }

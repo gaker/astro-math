@@ -37,7 +37,7 @@ fn test_sun_ra_dec() {
     // Vernal equinox - sun crosses celestial equator
     let dt = Utc.with_ymd_and_hms(2024, 3, 20, 0, 0, 0).unwrap();
     let (ra, dec) = sun_ra_dec(dt);
-    assert!(ra < 2.0 || ra > 358.0, "Near vernal equinox, RA should be ~0°, got {}", ra);
+    assert!(!(2.0..=358.0).contains(&ra), "Near vernal equinox, RA should be ~0°, got {}", ra);
     assert!(dec.abs() < 1.0, "Near vernal equinox, Dec should be ~0°, got {}", dec);
     
     // Summer solstice - sun at maximum northern declination

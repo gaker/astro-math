@@ -47,15 +47,15 @@ fn test_precession_normalization() {
     
     // Test with RA that might go negative after inverse precession
     let (ra1, dec1) = precess_to_j2000(5.0, 60.0, dt).unwrap();
-    assert!(ra1 >= 0.0 && ra1 < 360.0, "RA should be normalized to [0,360), got {}", ra1);
-    assert!(dec1 >= -90.0 && dec1 <= 90.0, "Dec should remain valid, got {}", dec1);
+    assert!((0.0..360.0).contains(&ra1), "RA should be normalized to [0,360), got {}", ra1);
+    assert!((-90.0..=90.0).contains(&dec1), "Dec should remain valid, got {}", dec1);
     // Inverse precession should reduce RA
-    assert!(ra1 < 5.0 || ra1 > 350.0, "Inverse precession from 2100 should reduce RA, got {}", ra1);
+    assert!(!(5.0..=350.0).contains(&ra1), "Inverse precession from 2100 should reduce RA, got {}", ra1);
     
     // Test with RA that might exceed 360 after forward precession
     let (ra2, dec2) = precess_from_j2000(355.0, -60.0, dt).unwrap();
-    assert!(ra2 >= 0.0 && ra2 < 360.0, "RA should be normalized to [0,360), got {}", ra2);
-    assert!(dec2 >= -90.0 && dec2 <= 90.0, "Dec should remain valid, got {}", dec2);
+    assert!((0.0..360.0).contains(&ra2), "RA should be normalized to [0,360), got {}", ra2);
+    assert!((-90.0..=90.0).contains(&dec2), "Dec should remain valid, got {}", dec2);
 }
 
 #[test]
@@ -65,11 +65,11 @@ fn test_precession_ra_else_branches() {
     
     // Test with RA that doesn't need normalization
     let (ra1, _) = precess_to_j2000(180.0, 0.0, dt).unwrap();
-    assert!(ra1 >= 0.0 && ra1 < 360.0);
+    assert!((0.0..360.0).contains(&ra1));
     
     // Test j2000_to_date with normal RA
     let (ra2, _) = precess_from_j2000(180.0, 0.0, dt).unwrap();
-    assert!(ra2 >= 0.0 && ra2 < 360.0);
+    assert!((0.0..360.0).contains(&ra2));
 }
 
 #[test]
@@ -78,7 +78,7 @@ fn test_precession_ra_normalization_edge_cases() {
     
     // Test RA near 360 boundary
     let (ra_norm, _) = precess_to_j2000(359.99, 0.0, dt).unwrap();
-    assert!(ra_norm >= 0.0 && ra_norm < 360.0);
+    assert!((0.0..360.0).contains(&ra_norm));
 }
 
 #[test]
@@ -88,5 +88,5 @@ fn test_precession_ra_wraparound_360() {
     
     // Test case that results in RA >= 360 after inverse precession
     let (ra, _) = precess_to_j2000(0.1, 89.0, dt).unwrap();
-    assert!(ra >= 0.0 && ra < 360.0, "RA should be normalized when >= 360");
+    assert!((0.0..360.0).contains(&ra), "RA should be normalized when >= 360");
 }

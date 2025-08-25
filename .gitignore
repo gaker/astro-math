@@ -4,6 +4,9 @@ Cargo.lock
 .ipynb_checkpoints/
 build_rs_cov.profraw
 
+# Test data dumping ground
+astropy_test_data/
+
 # Python
 __pycache__/
 *.so

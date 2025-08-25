@@ -17,7 +17,8 @@ pub fn moon_position(datetime: DateTime<Utc>) -> (f64, f64) {
     let jd = julian_date(datetime);
     
     // Approximate TT from UTC (ignoring leap seconds for now)
-    let tt = jd + 69.184 / 86400.0;
+    use crate::time_scales::utc_to_tt_jd;
+    let tt = utc_to_tt_jd(jd);
     
     // Get Moon position-velocity using ERFA Moon98 (GCRS coordinates)
     let pv = erfars::ephemerides::Moon98(tt, 0.0);
@@ -69,7 +70,8 @@ pub fn moon_phase_angle(datetime: DateTime<Utc>) -> f64 {
     
     // Get Sun's ecliptic longitude
     let jd = julian_date(datetime);
-    let tt = jd + 69.184 / 86400.0;
+    use crate::time_scales::utc_to_tt_jd;
+    let tt = utc_to_tt_jd(jd);
     
     // Get Earth position relative to Sun (heliocentric)
     let (earth_h, _earth_b) = erfars::ephemerides::Epv00(tt, 0.0);
@@ -159,7 +161,8 @@ pub fn moon_distance(datetime: DateTime<Utc>) -> f64 {
     let jd = julian_date(datetime);
     
     // Approximate TT from UTC
-    let tt = jd + 69.184 / 86400.0;
+    use crate::time_scales::utc_to_tt_jd;
+    let tt = utc_to_tt_jd(jd);
     
     // Get Moon position-velocity using ERFA Moon98
     let pv = erfars::ephemerides::Moon98(tt, 0.0);
@@ -185,7 +188,8 @@ pub fn moon_equatorial(datetime: DateTime<Utc>) -> (f64, f64) {
     let jd = julian_date(datetime);
     
     // Approximate TT from UTC
-    let tt = jd + 69.184 / 86400.0;
+    use crate::time_scales::utc_to_tt_jd;
+    let tt = utc_to_tt_jd(jd);
     
     // Get Moon position-velocity using ERFA Moon98 (already in GCRS equatorial)
     let pv = erfars::ephemerides::Moon98(tt, 0.0);
@@ -220,7 +224,7 @@ mod tests {
         // Test known new moon
         let new_moon = Utc.with_ymd_and_hms(2024, 1, 11, 11, 57, 0).unwrap();
         let phase = moon_phase_angle(new_moon);
-        assert!(phase < 10.0 || phase > 350.0); // Near 0 or 360
+        assert!(!(10.0..=350.0).contains(&phase)); // Near 0 or 360
         
         // Test known full moon
         let full_moon = Utc.with_ymd_and_hms(2024, 1, 25, 17, 54, 0).unwrap();
@@ -264,7 +268,7 @@ mod tests {
         // Test that coordinates are in valid ranges
         let dt = Utc.with_ymd_and_hms(2024, 8, 4, 12, 0, 0).unwrap();
         let (ra, dec) = moon_equatorial(dt);
-        assert!(ra >= 0.0 && ra < 360.0);
-        assert!(dec >= -90.0 && dec <= 90.0); // Valid declination range
+        assert!((0.0..360.0).contains(&ra));
+        assert!((-90.0..=90.0).contains(&dec)); // Valid declination range
     }
 }

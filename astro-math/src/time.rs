@@ -90,27 +90,22 @@ pub fn julian_date(datetime: DateTime<Utc>) -> f64 {
     }
 
     let a = (y as f64 / 100.0).floor();
-    // Gregorian calendar was adopted on October 15, 1582
-    // Dates from October 5-14, 1582 don't exist in the Gregorian calendar
-    let b = if datetime.date_naive() >= chrono::NaiveDate::from_ymd_opt(1582, 10, 15).unwrap() {
-        2.0 - a + (a / 4.0).floor()
-    } else {
-        0.0
-    };
+    
+    // Proleptic Gregorian calendar approach (matches astropy/ERFA)
+    // Always apply the Gregorian leap year correction
+    let b = 2.0 - a + (a / 4.0).floor();
 
     let hour = datetime.hour() as f64;
     let minute = datetime.minute() as f64;
     let second = datetime.second() as f64;
     let frac_day = (hour + (minute / 60.0) + (second / 3600.0)) / 24.0;
 
-    let jd = (365.25 * (y as f64 + 4716.0)).floor()
+    (365.25 * (y as f64 + 4716.0)).floor()
         + (30.6001 * ((m + 1) as f64)).floor()
         + day
         + frac_day
         + b
-        - 1524.5;
-
-    jd
+        - 1524.5
 }
 
 /// Computes the number of days since the J2000.0 epoch (`JD2000`).
@@ -140,4 +135,87 @@ pub fn julian_date(datetime: DateTime<Utc>) -> f64 {
 /// ```
 pub fn j2000_days(datetime: DateTime<Utc>) -> f64 {
     julian_date(datetime) - JD2000
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{TimeZone, Utc};
+
+    #[test]
+    fn test_calendar_reform_period_1582() {
+        // Critical test cases for the Gregorian calendar reform in October 1582
+        // These values are verified against astropy and match the proleptic Gregorian approach
+        
+        let test_cases = [
+            // Before the reform (Julian calendar dates)
+            (1582, 10, 1, 12, 0, 0, 2299147.0, "Oct 1, 1582"),
+            (1582, 10, 3, 12, 0, 0, 2299149.0, "Oct 3, 1582"),
+            (1582, 10, 4, 12, 0, 0, 2299150.0, "Last Julian day"),
+            
+            // The historically non-existent dates (Oct 5-14, 1582)
+            // In proleptic Gregorian calendar, these have sequential JDs
+            (1582, 10, 5, 12, 0, 0, 2299151.0, "Invalid historical date"),
+            (1582, 10, 10, 12, 0, 0, 2299156.0, "Invalid historical date"),
+            (1582, 10, 14, 12, 0, 0, 2299160.0, "Invalid historical date"),
+            
+            // After the reform (Gregorian calendar dates)
+            (1582, 10, 15, 12, 0, 0, 2299161.0, "First Gregorian day"),
+            (1582, 10, 16, 12, 0, 0, 2299162.0, "Day after reform"),
+            (1582, 10, 31, 12, 0, 0, 2299177.0, "Later Oct 1582"),
+            
+            // Additional edge cases
+            (1582, 11, 1, 12, 0, 0, 2299178.0, "Nov 1582"),
+            (1583, 1, 1, 12, 0, 0, 2299239.0, "Jan 1583"),
+        ];
+        
+        for (year, month, day, hour, min, sec, expected_jd, description) in test_cases {
+            let dt = Utc.with_ymd_and_hms(year, month, day, hour, min, sec).unwrap();
+            let calculated_jd = julian_date(dt);
+            
+            let diff_seconds = (calculated_jd - expected_jd).abs() * 86400.0;
+            assert!(
+                diff_seconds < 0.001,
+                "Failed for {}: expected JD {}, got {}, diff = {:.6} seconds",
+                description, expected_jd, calculated_jd, diff_seconds
+            );
+        }
+    }
+    
+    #[test]
+    fn test_calendar_transition_gap() {
+        // Verify the 11-day gap between last Julian and first Gregorian dates
+        let oct_4 = Utc.with_ymd_and_hms(1582, 10, 4, 12, 0, 0).unwrap();
+        let oct_15 = Utc.with_ymd_and_hms(1582, 10, 15, 12, 0, 0).unwrap();
+        
+        let jd_4 = julian_date(oct_4);
+        let jd_15 = julian_date(oct_15);
+        let gap = jd_15 - jd_4;
+        
+        // Should be exactly 11 days difference
+        assert!((gap - 11.0).abs() < 0.001, 
+               "Calendar transition gap should be 11 days, got {:.3}", gap);
+    }
+    
+    #[test]
+    fn test_j2000_epoch() {
+        // Verify the J2000.0 epoch is correct
+        let j2000 = Utc.with_ymd_and_hms(2000, 1, 1, 12, 0, 0).unwrap();
+        let jd = julian_date(j2000);
+        
+        assert!((jd - JD2000).abs() < 1e-9, 
+               "J2000.0 epoch should be exactly {}, got {}", JD2000, jd);
+    }
+    
+    #[test]
+    fn test_j2000_days() {
+        // Test days since J2000.0 calculation
+        let test_date = Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
+        let days = j2000_days(test_date);
+        let jd = julian_date(test_date);
+        
+        // Should match: jd = JD2000 + days
+        assert!((jd - (JD2000 + days)).abs() < 1e-9,
+               "j2000_days calculation inconsistent with julian_date");
+    }
 }

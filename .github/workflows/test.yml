@@ -59,11 +59,14 @@ jobs:
           fi
 
       - name: Run code coverage
-        run: cargo tarpaulin --ignore-tests --out Xml --verbose
+        run: |
+          # Run tarpaulin only on the astro-math package
+          # Note: tarpaulin may still include workspace members in the report
+          cargo tarpaulin --ignore-tests --out Xml --verbose --packages astro-math
 
       - name: Upload coverage to Codecov
         if: github.ref == 'refs/heads/main'  # Only upload coverage from main branch
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: cobertura.xml
           flags: rust
@@ -97,12 +100,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pytest-cov numpy
 
+      - name: Install maturin
+        run: pip install maturin
+        
       - name: Build and install package
-        uses: PyO3/maturin-action@v1
-        with:
-          working-directory: astro-math-py
-          command: build
-          args: --release --out dist
+        run: |
+          cd astro-math-py
+          maturin build --release --out dist
           
       - name: Install built wheel
         run: |
@@ -115,7 +119,7 @@ jobs:
 
       - name: Upload Python coverage
         if: matrix.python-version == '3.11' && github.ref == 'refs/heads/main'  # Only from main
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: ./astro-math-py/coverage.xml
           flags: python

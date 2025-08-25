@@ -48,13 +48,13 @@ fn test_coordinate_ranges() {
     
     for (ra, dec) in test_coords {
         let (l, b) = equatorial_to_galactic(ra, dec).unwrap();
-        assert!(l >= 0.0 && l < 360.0, "l out of range: {}", l);
-        assert!(b >= -90.0 && b <= 90.0, "b out of range: {}", b);
+        assert!((0.0..360.0).contains(&l), "l out of range: {}", l);
+        assert!((-90.0..=90.0).contains(&b), "b out of range: {}", b);
         
         // Test reverse conversion
         let (ra2, dec2) = galactic_to_equatorial(l, b).unwrap();
-        assert!(ra2 >= 0.0 && ra2 < 360.0, "RA out of range: {}", ra2);
-        assert!(dec2 >= -90.0 && dec2 <= 90.0, "Dec out of range: {}", dec2);
+        assert!((0.0..360.0).contains(&ra2), "RA out of range: {}", ra2);
+        assert!((-90.0..=90.0).contains(&dec2), "Dec out of range: {}", dec2);
     }
 }
 
@@ -82,8 +82,8 @@ fn test_galactic_landmarks() {
     for (name, l, b) in landmarks {
         assert!(!name.is_empty(), "Landmark name should not be empty");
         assert!(name.len() > 5, "Landmark name should be descriptive, got: {}", name);
-        assert!(l >= 0.0 && l < 360.0, "Galactic longitude should be [0,360), got {}", l);
-        assert!(b >= -90.0 && b <= 90.0, "Galactic latitude should be [-90,90], got {}", b);
+        assert!((0.0..360.0).contains(&l), "Galactic longitude should be [0,360), got {}", l);
+        assert!((-90.0..=90.0).contains(&b), "Galactic latitude should be [-90,90], got {}", b);
     }
 }
 

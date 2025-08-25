@@ -28,6 +28,11 @@ use crate::{Location, julian_date, ra_dec_to_alt_az};
 use crate::error::{Result, validate_ra, validate_dec};
 use chrono::{DateTime, Datelike, Duration, TimeZone, Utc};
 
+/// Result type for rise, transit, and set times.
+/// Returns None if the object is circumpolar or never rises.
+/// Returns Some((rise, transit, set)) for normal objects.
+pub type RiseTransitSetResult = Result<Option<(DateTime<Utc>, DateTime<Utc>, DateTime<Utc>)>>;
+
 /// Standard altitude for rise/set calculations (accounting for refraction and semi-diameter)
 pub const RISE_SET_ALTITUDE: f64 = -0.5667; // -34 arcminutes
 
@@ -73,7 +78,7 @@ pub fn rise_transit_set(
     date: DateTime<Utc>,
     location: &Location,
     altitude_deg: Option<f64>,
-) -> Result<Option<(DateTime<Utc>, DateTime<Utc>, DateTime<Utc>)>> {
+) -> RiseTransitSetResult {
     validate_ra(ra)?;
     validate_dec(dec)?;
     let target_alt = altitude_deg.unwrap_or(RISE_SET_ALTITUDE);

@@ -15,14 +15,14 @@ fn nutation(jd: f64) -> PyResult<(f64, f64)> {
 /// Calculate nutation in longitude only.
 #[pyfunction]
 #[pyo3(signature = (jd))]
-fn nutation_in_longitude(jd: f64) -> PyResult<f64> {
+fn in_longitude(jd: f64) -> PyResult<f64> {
     Ok(rust_nutation::nutation_in_longitude(jd))
 }
 
 /// Calculate nutation in obliquity only.
 #[pyfunction]
 #[pyo3(signature = (jd))]
-fn nutation_in_obliquity(jd: f64) -> PyResult<f64> {
+fn in_obliquity(jd: f64) -> PyResult<f64> {
     Ok(rust_nutation::nutation_in_obliquity(jd))
 }
 
@@ -43,8 +43,8 @@ fn true_obliquity(jd: f64) -> PyResult<f64> {
 /// Register the nutation module with Python
 pub fn register(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(nutation, m)?)?;
-    m.add_function(wrap_pyfunction!(nutation_in_longitude, m)?)?;
-    m.add_function(wrap_pyfunction!(nutation_in_obliquity, m)?)?;
+    m.add_function(wrap_pyfunction!(in_longitude, m)?)?;
+    m.add_function(wrap_pyfunction!(in_obliquity, m)?)?;
     m.add_function(wrap_pyfunction!(mean_obliquity, m)?)?;
     m.add_function(wrap_pyfunction!(true_obliquity, m)?)?;
     Ok(())

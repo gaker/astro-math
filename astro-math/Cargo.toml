@@ -24,6 +24,7 @@ num_cpus = "1.16"
 statrs = "0.17"
 num-traits = "0.2"
 num-complex = "0.4"
+lazy_static = "1.4"
 rand = { version = "0.8", optional = true }
 rand_distr = { version = "0.4", optional = true }
 
@@ -36,4 +37,12 @@ rand_distr = "0.4"
 [features]
 default = []
 generator = ["rand", "rand_distr"]
+
+[[bench]]
+name = "performance_analysis"
+harness = false
+
+[[bench]]
+name = "simple_performance"
+harness = false
 

@@ -43,7 +43,7 @@ use crate::error::{Result, AstroError};
 /// - Best for altitude > 30°
 /// - Formula: X = sec(z) where z is zenith angle
 pub fn airmass_plane_parallel(altitude_deg: f64) -> Result<f64> {
-    if altitude_deg < -90.0 || altitude_deg > 90.0 {
+    if !(-90.0..=90.0).contains(&altitude_deg) {
         return Err(AstroError::OutOfRange {
             parameter: "altitude",
             value: altitude_deg,
@@ -82,7 +82,7 @@ pub fn airmass_plane_parallel(altitude_deg: f64) -> Result<f64> {
 /// assert!((airmass - 2.0).abs() < 0.1);
 /// ```
 pub fn airmass_young(altitude_deg: f64) -> Result<f64> {
-    if altitude_deg < -90.0 || altitude_deg > 90.0 {
+    if !(-90.0..=90.0).contains(&altitude_deg) {
         return Err(AstroError::OutOfRange {
             parameter: "altitude",
             value: altitude_deg,
@@ -121,7 +121,7 @@ pub fn airmass_young(altitude_deg: f64) -> Result<f64> {
 /// Use this formula for the most accurate results, especially for
 /// altitude < 15° where other formulas become less reliable.
 pub fn airmass_pickering(altitude_deg: f64) -> Result<f64> {
-    if altitude_deg < -90.0 || altitude_deg > 90.0 {
+    if !(-90.0..=90.0).contains(&altitude_deg) {
         return Err(AstroError::OutOfRange {
             parameter: "altitude",
             value: altitude_deg,
@@ -153,7 +153,7 @@ pub fn airmass_pickering(altitude_deg: f64) -> Result<f64> {
 /// Returns `Err(AstroError::OutOfRange)` if altitude is outside [-90, 90] degrees.
 ///
 pub fn airmass_kasten_young(altitude_deg: f64) -> Result<f64> {
-    if altitude_deg < -90.0 || altitude_deg > 90.0 {
+    if !(-90.0..=90.0).contains(&altitude_deg) {
         return Err(AstroError::OutOfRange {
             parameter: "altitude",
             value: altitude_deg,

@@ -35,7 +35,7 @@ fn test_aberration_magnitude_range() {
         // For safety, allow up to 30" to account for combined RA and Dec effects
         // Since we include precession/nutation, the total correction can be much larger
         // Precession alone can be ~50"/year * 24 years = 1200" for J2000 to 2024
-        assert!(mag >= 0.0 && mag <= 1500.0, 
+        assert!((0.0..=1500.0).contains(&mag), 
             "Total correction at RA={}, Dec={} is {}\" (includes precession)", ra, dec, mag);
     }
 }
@@ -108,11 +108,11 @@ fn test_aberration_ra_wraparound() {
     
     // Star near RA=0 might wrap around
     let (ra_app, _) = apply_aberration(0.1, 45.0, dt).unwrap();
-    assert!(ra_app >= 0.0 && ra_app < 360.0, "RA should stay normalized");
+    assert!((0.0..360.0).contains(&ra_app), "RA should stay normalized");
     
     // Star near RA=360
     let (ra_app, _) = apply_aberration(359.9, 45.0, dt).unwrap();
-    assert!(ra_app >= 0.0 && ra_app < 360.0, "RA should stay normalized");
+    assert!((0.0..360.0).contains(&ra_app), "RA should stay normalized");
 }
 
 #[test]
@@ -158,12 +158,12 @@ fn test_aberration_ra_normalization_apply() {
     // At winter solstice, sun is at ~270°
     // A star at RA ~359.99° with positive RA aberration should exceed 360
     let (ra_app, _) = apply_aberration(359.995, 0.0, dt).unwrap();
-    assert!(ra_app >= 0.0 && ra_app < 360.0, "RA should be normalized");
+    assert!((0.0..360.0).contains(&ra_app), "RA should be normalized");
     
     // Also test a star that naturally would have RA > 360 after aberration
     // At high declination, the RA correction is amplified by 1/cos(dec)
     let (ra_app2, _) = apply_aberration(359.99, 85.0, dt).unwrap();
-    assert!(ra_app2 >= 0.0 && ra_app2 < 360.0, "RA should be normalized at high dec");
+    assert!((0.0..360.0).contains(&ra_app2), "RA should be normalized at high dec");
 }
 
 #[test]
@@ -173,9 +173,9 @@ fn test_aberration_ra_normalization_remove() {
     
     // Test negative RA normalization
     let (ra_mean, _) = remove_aberration(0.01, 45.0, dt).unwrap();
-    assert!(ra_mean >= 0.0 && ra_mean < 360.0, "RA should be normalized from negative");
+    assert!((0.0..360.0).contains(&ra_mean), "RA should be normalized from negative");
     
     // Test RA >= 360 normalization
     let (ra_mean2, _) = remove_aberration(359.99, 45.0, dt).unwrap();
-    assert!(ra_mean2 >= 0.0 && ra_mean2 < 360.0, "RA should be normalized from >= 360");
+    assert!((0.0..360.0).contains(&ra_mean2), "RA should be normalized from >= 360");
 }

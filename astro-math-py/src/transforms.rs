@@ -4,7 +4,42 @@ use pyo3::types::{PyDateTime, PyDateAccess, PyTimeAccess};
 use astro_math::{transforms, Location};
 use chrono::{DateTime, TimeZone, Utc};
 
-/// Single coordinate transform from RA/Dec to Alt/Az using ERFA
+/// Transform equatorial coordinates to horizontal coordinates.
+/// 
+/// Converts right ascension and declination to altitude and azimuth
+/// for a specific observer location and time.
+/// 
+/// Parameters
+/// ----------
+/// ra : float
+///     Right ascension in degrees
+/// dec : float  
+///     Declination in degrees
+/// dt : datetime
+///     UTC datetime for the observation
+/// latitude : float
+///     Observer's latitude in degrees
+/// longitude : float
+///     Observer's longitude in degrees (positive east)
+/// altitude : float, optional
+///     Observer's altitude in meters (default: 0.0)
+/// 
+/// Returns
+/// -------
+/// tuple[float, float]
+///     (altitude, azimuth) in degrees
+/// 
+/// Examples
+/// --------
+/// >>> from astro_math.transforms import ra_dec_to_alt_az
+/// >>> from datetime import datetime
+/// >>> alt, az = ra_dec_to_alt_az(
+/// ...     ra=279.23, dec=38.78,  # Vega
+/// ...     dt=datetime(2024, 8, 4, 6, 0, 0),
+/// ...     latitude=40.7, longitude=-74.0  # New York
+/// ... )
+/// >>> print(f"Vega: Alt={alt:.1f}°, Az={az:.1f}°")
+/// Vega: Alt=64.2°, Az=290.1°
 #[pyfunction]
 #[pyo3(signature = (ra, dec, dt, latitude, longitude, altitude=0.0))]
 fn ra_dec_to_alt_az(
@@ -301,9 +336,9 @@ mod tests {
         
         for (ra, dec) in test_cases {
             let (alt, az) = transforms::ra_dec_to_alt_az(ra, dec, dt, &location).unwrap();
-            assert!(alt >= -90.0 && alt <= 90.0, 
+            assert!((-90.0..=90.0).contains(&alt), 
                     "Altitude must be in range [-90, 90], got {} for RA={}, Dec={}", alt, ra, dec);
-            assert!(az >= 0.0 && az < 360.0,
+            assert!((0.0..360.0).contains(&az),
                     "Azimuth must be in range [0, 360), got {} for RA={}, Dec={}", az, ra, dec);
         }
     }
@@ -311,15 +346,15 @@ mod tests {
     #[test]
     fn test_array_length_validation() {
         // Test the array length validation logic used in batch operations
-        let ra_values = vec![0.0, 90.0, 180.0];
-        let dec_values = vec![0.0, 45.0]; // Intentionally different length
+        let ra_values = [0.0, 90.0, 180.0];
+        let dec_values = [0.0, 45.0]; // Intentionally different length
         
         // This simulates the validation that happens in ra_dec_to_alt_az_batch
         assert_ne!(ra_values.len(), dec_values.len(), "Arrays should have different lengths for this test");
         
         // Equal length arrays should work
-        let ra_equal = vec![0.0, 90.0];
-        let dec_equal = vec![0.0, 45.0];
+        let ra_equal = [0.0, 90.0];
+        let dec_equal = [0.0, 45.0];
         assert_eq!(ra_equal.len(), dec_equal.len(), "Equal length arrays should pass validation");
         
         // Test the actual transformation logic that would be used in batch
@@ -360,8 +395,8 @@ mod tests {
                     location.latitude_deg, location.longitude_deg, location.altitude_m);
             
             let (alt, az) = result.unwrap();
-            assert!(alt >= -90.0 && alt <= 90.0);
-            assert!(az >= 0.0 && az < 360.0);
+            assert!((-90.0..=90.0).contains(&alt));
+            assert!((0.0..360.0).contains(&az));
         }
     }
 

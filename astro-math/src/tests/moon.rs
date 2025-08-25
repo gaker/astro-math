@@ -14,8 +14,8 @@ fn test_moon_position_range() {
     
     for dt in dates {
         let (lon, lat) = moon_position(dt);
-        assert!(lon >= 0.0 && lon < 360.0, "Longitude out of range: {}", lon);
-        assert!(lat >= -6.0 && lat <= 6.0, "Latitude out of range: {}", lat);
+        assert!((0.0..360.0).contains(&lon), "Longitude out of range: {}", lon);
+        assert!((-6.0..=6.0).contains(&lat), "Latitude out of range: {}", lat);
     }
 }
 
@@ -92,7 +92,7 @@ fn test_moon_edge_cases() {
     // Test moon phase angle wraparound
     let dt = Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap();
     let phase = moon_phase_angle(dt);
-    assert!(phase >= 0.0 && phase < 360.0);
+    assert!((0.0..360.0).contains(&phase));
 }
 
 #[test]
@@ -111,15 +111,15 @@ fn test_moon_negative_normalizations() {
     // Test negative longitude normalization
     let dt = Utc.with_ymd_and_hms(1900, 1, 1, 0, 0, 0).unwrap();
     let (lon, _) = moon_position(dt);
-    assert!(lon >= 0.0 && lon < 360.0);
+    assert!((0.0..360.0).contains(&lon));
     
     // Test negative phase normalization
     let phase = moon_phase_angle(dt);
-    assert!(phase >= 0.0 && phase < 360.0);
+    assert!((0.0..360.0).contains(&phase));
     
     // Test negative RA normalization
     let (ra, _) = moon_equatorial(dt);
-    assert!(ra >= 0.0 && ra < 360.0);
+    assert!((0.0..360.0).contains(&ra));
 }
 
 #[test]
@@ -147,7 +147,7 @@ fn test_moon_known_phases_erfa() {
     let new_moon = Utc.with_ymd_and_hms(2024, 1, 11, 11, 57, 0).unwrap();
     let phase = moon_phase_angle(new_moon);
     let illum = moon_illumination(new_moon);
-    assert!(phase < 5.0 || phase > 355.0, "New moon phase angle: {}", phase);
+    assert!(!(5.0..=355.0).contains(&phase), "New moon phase angle: {}", phase);
     assert!(illum < 2.0, "New moon illumination: {}", illum);
     
     // Full Moon: January 25, 2024 17:54 UTC  
@@ -214,8 +214,8 @@ fn test_moon_synodic_period() {
     let end_phase = moon_phase_angle(next_new_moon);
     
     // Both should be near 0 degrees (new moon)
-    assert!(start_phase < 5.0 || start_phase > 355.0);
-    assert!(end_phase < 5.0 || end_phase > 355.0);
+    assert!(!(5.0..=355.0).contains(&start_phase));
+    assert!(!(5.0..=355.0).contains(&end_phase));
     
     // Period should be about 29.3 days
     let period_days = julian_date(next_new_moon) - julian_date(start_new_moon);
@@ -232,8 +232,8 @@ fn test_moon_equatorial_precision() {
     // Expected approximate values for this date
     // These are rough values - ERFA should be accurate to arcseconds
     // Moon moves quickly, so RA range needs to be wider
-    assert!(ra >= 0.0 && ra < 360.0, "RA: {}", ra);
-    assert!(dec >= -30.0 && dec <= 30.0, "Dec: {}", dec);
+    assert!((0.0..360.0).contains(&ra), "RA: {}", ra);
+    assert!((-30.0..=30.0).contains(&dec), "Dec: {}", dec);
 }
 
 #[test]

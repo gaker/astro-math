@@ -38,7 +38,46 @@ use crate::{local_mean_sidereal_time, sidereal::apparent_sidereal_time};
 use crate::error::{AstroError, Result};
 use chrono::{DateTime, Utc};
 use std::str::FromStr;
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
+use lazy_static::lazy_static;
+
+// Pre-compiled regex patterns for performance
+lazy_static! {
+    /// HMS pattern with DoS protection
+    static ref HMS_REGEX: Regex = RegexBuilder::new(
+        r"(\d{1,3}(?:\.\d{1,10})?)\s*h\s*(\d{1,2}(?:\.\d{1,10})?)\s*m?\s*(\d{1,2}(?:\.\d{1,10})?)\s*s?"
+    )
+    .size_limit(1024 * 1024)  // 1MB regex size limit
+    .dfa_size_limit(10 * 1024 * 1024) // 10MB DFA size limit
+    .build()
+    .expect("HMS regex compilation failed");
+    
+    /// DMS pattern with DoS protection
+    static ref DMS_REGEX: Regex = RegexBuilder::new(
+        r#"([+-]?\d{1,3}(?:\.\d{1,10})?)\s*[°d]?\s*(\d{1,2}(?:\.\d{1,10})?)\s*['′m]?\s*(\d{1,2}(?:\.\d{1,10})?)\s*["″s]?"#
+    )
+    .size_limit(1024 * 1024)
+    .dfa_size_limit(10 * 1024 * 1024)
+    .build()
+    .expect("DMS regex compilation failed");
+    
+    /// Decimal degrees pattern with size limits
+    static ref DECIMAL_REGEX: Regex = RegexBuilder::new(
+        r"^[+-]?\d{1,3}(?:\.\d{1,15})?[NSEW]?$"
+    )
+    .case_insensitive(true)
+    .size_limit(1024 * 1024)
+    .build()
+    .expect("Decimal regex compilation failed");
+    
+    /// Compact format pattern (DDMM.mmm or DDMMSS) with validation
+    static ref COMPACT_REGEX: Regex = RegexBuilder::new(
+        r"^([+-]?)(\d{2,3})(\d{2})(?:(\d{2})(?:\.(\d{1,6}))?)?$"
+    )
+    .size_limit(1024 * 1024)
+    .build()
+    .expect("Compact regex compilation failed");
+}
 
 /// Represents a physical observer location on Earth.
 ///
@@ -300,10 +339,7 @@ fn parse_dms(s: &str) -> Result<f64> {
     let is_negative = original.starts_with('-');
     
     let cleaned = original
-        .replace('°', " ")
-        .replace('\'', " ")
-        .replace(':', " ")
-        .replace('"', " ");
+        .replace(['°', '\'', ':', '"'], " ");
 
     let parts: Vec<&str> = cleaned.split_whitespace().collect();
     if parts.len() < 2 {
@@ -313,7 +349,7 @@ fn parse_dms(s: &str) -> Result<f64> {
         });
     }
 
-    let d = f64::from_str(parts[0].trim_start_matches(|c| c == '+' || c == '-'))
+    let d = f64::from_str(parts[0].trim_start_matches(['+', '-']))
         .map_err(|_| AstroError::InvalidDmsFormat {
             input: s.to_string(),
             expected: "DD MM SS.s or DD:MM:SS.s or DD°MM'SS.s\"",
@@ -400,6 +436,7 @@ fn extract_compass_direction(s: &str) -> (String, Option<char>) {
             // Check if this is likely a compass direction vs part of a word
             // Look at the character before the last one
             let chars: Vec<char> = upper.chars().collect();
+            #[allow(clippy::comparison_chain)]
             if chars.len() == 1 {
                 // Single character, definitely a direction
                 let value = s[..s.len()-1].trim_end();
@@ -416,7 +453,7 @@ fn extract_compass_direction(s: &str) -> (String, Option<char>) {
                         // "46s" or "27s" = seconds (digit immediately before 's', no other indicators)
                         // "8\"S" or "33.8688 S" = South (has space, quotes, or other separators)
                         let has_separators = s.contains(' ') || s.contains('"') || s.contains('\'') || s.contains('°');
-                        if !has_separators && second_to_last.is_digit(10) {
+                        if !has_separators && second_to_last.is_ascii_digit() {
                             // Pattern like "46s" - likely seconds
                         } else {
                             // Pattern like "8\"S" or "33.8688 S" - likely South direction
@@ -436,7 +473,7 @@ fn extract_compass_direction(s: &str) -> (String, Option<char>) {
     let words: Vec<&str> = upper.split_whitespace().collect();
     let s_upper = s.to_uppercase();
     for word in &words {
-        match word.as_ref() {
+        match *word {
             "NORTH" => return (s_upper.replace("NORTH", "").trim().to_string(), Some('N')),
             "SOUTH" => return (s_upper.replace("SOUTH", "").trim().to_string(), Some('S')),
             "EAST" => return (s_upper.replace("EAST", "").trim().to_string(), Some('E')),
@@ -503,29 +540,43 @@ fn try_parse_decimal_degrees(s: &str) -> Result<f64> {
     })
 }
 
+/// Input validation to prevent DoS attacks
+fn validate_input_length(s: &str, _context: &str) -> Result<()> {
+    const MAX_INPUT_LENGTH: usize = 1000; // Prevent extremely long inputs
+    const MAX_UNICODE_LENGTH: usize = 500; // Unicode chars can be larger
+    
+    if s.len() > MAX_INPUT_LENGTH {
+        return Err(AstroError::InvalidDmsFormat {
+            input: format!("Input too long ({} chars)", s.len()),
+            expected: "Input must be < 1000 characters",
+        });
+    }
+    
+    if s.chars().count() > MAX_UNICODE_LENGTH {
+        return Err(AstroError::InvalidDmsFormat {
+            input: format!("Too many Unicode characters ({} chars)", s.chars().count()),
+            expected: "Input must be < 500 Unicode characters", 
+        });
+    }
+    
+    Ok(())
+}
+
 /// Try to parse HMS format (for longitude)
 fn try_parse_hms(s: &str) -> Result<f64> {
-    // Replace various HMS indicators
-    let normalized = s.to_lowercase()
-        .replace("hours", "h")
-        .replace("hour", "h")
-        .replace("minutes", "m")
-        .replace("minute", "m") 
-        .replace("seconds", "s")
-        .replace("second", "s")
-        .replace("hrs", "h")
-        .replace("hr", "h")
-        .replace("mins", "m")
-        .replace("min", "m")
-        .replace("secs", "s")
-        .replace("sec", "s")
-        .replace('′', "'")  // Unicode prime
-        .replace('″', "\"") // Unicode double prime
-        .replace('"', "\"");
+    validate_input_length(s, "HMS")?;
     
-    // Try regex for HMS
-    let hms_regex = Regex::new(r"(\d+(?:\.\d+)?)\s*h\s*(\d+(?:\.\d+)?)\s*m?\s*(\d+(?:\.\d+)?)\s*s?").unwrap();
-    if let Some(caps) = hms_regex.captures(&normalized) {
+    let normalized = s.to_lowercase()
+        .replace("hours", "h").replace("hour", "h")
+        .replace("minutes", "m").replace("minute", "m") 
+        .replace("seconds", "s").replace("second", "s")
+        .replace("hrs", "h").replace("hr", "h")
+        .replace("mins", "m").replace("min", "m")
+        .replace("secs", "s").replace("sec", "s")
+        .replace('′', "'")  // Unicode prime
+        .replace(['″', '"'], "\"");
+    
+    if let Some(caps) = HMS_REGEX.captures(&normalized) {
         let h = f64::from_str(&caps[1]).map_err(|_| AstroError::InvalidDmsFormat {
             input: s.to_string(),
             expected: "HMS format"
@@ -541,7 +592,7 @@ fn try_parse_hms(s: &str) -> Result<f64> {
     if s.contains('h') || s.contains('H') {
         let parts: Vec<&str> = s.split(':').collect();
         if parts.len() >= 2 {
-            let h_part = parts[0].trim_end_matches(|c: char| c == 'h' || c == 'H');
+            let h_part = parts[0].trim_end_matches(['h', 'H']);
             if let Ok(h) = f64::from_str(h_part) {
                 let m = parts.get(1).and_then(|p| f64::from_str(p.trim()).ok()).unwrap_or(0.0);
                 let s = parts.get(2).and_then(|p| f64::from_str(p.trim()).ok()).unwrap_or(0.0);
@@ -589,12 +640,9 @@ fn try_parse_dms(s: &str) -> Result<f64> {
 
 /// Internal DMS parser that handles the actual parsing logic
 fn try_parse_dms_internal(s: &str) -> Result<f64> {
-    // First try the regex approach on the original string
-    let dms_regex = Regex::new(
-        r#"([+-]?\d+(?:\.\d+)?)\s*[°d]?\s*(\d+(?:\.\d+)?)\s*['′m]?\s*(\d+(?:\.\d+)?)\s*["″s]?"#
-    ).unwrap();
+    validate_input_length(s, "DMS")?;
     
-    if let Some(caps) = dms_regex.captures(s) {
+    if let Some(caps) = DMS_REGEX.captures(s) {
         if caps.get(2).is_some() {  // Ensure at least degrees and minutes
             let d_str = &caps[1];
             let is_negative = s.starts_with('-') || d_str.starts_with('-');
@@ -613,21 +661,9 @@ fn try_parse_dms_internal(s: &str) -> Result<f64> {
     
     // Normalize Unicode and common symbols  
     let _normalized = s
-        .replace('°', " ")
-        .replace('º', " ")  // Masculine ordinal
-        .replace('′', " ")  // Unicode prime
-        .replace('″', " ") // Unicode double prime
-        .replace('\'', " ")  // Various quote styles
-        .replace('"', " ")
-        .replace('"', " ")
-        .replace('`', " ")
+        .replace(['°', 'º', '′', '″', '\'', '"', '"', '`'], " ")
         .replace("''", " ") // Double apostrophe as seconds
-        .replace('d', " ")
-        .replace('D', " ")
-        .replace('m', " ")
-        .replace('M', " ")
-        .replace('s', " ")
-        .replace('S', " ")
+        .replace(['d', 'D', 'm', 'M', 's', 'S'], " ")
         .to_lowercase();
     
     // Try various separators
@@ -645,7 +681,7 @@ fn try_parse_dms_internal(s: &str) -> Result<f64> {
                     .trim_end_matches(|c: char| c.is_alphabetic() || "°'\"″′".contains(c));
                 // For the first part, also trim leading sign
                 if i == 0 {
-                    cleaned.trim_start_matches(|c| c == '+' || c == '-').to_string()
+                    cleaned.trim_start_matches(['+', '-']).to_string()
                 } else {
                     cleaned.to_string()
                 }
@@ -713,7 +749,7 @@ fn try_parse_compact(s: &str) -> Result<f64> {
     
     // Remove all non-digit characters except decimal point
     let digits_only: String = s.chars()
-        .filter(|c| c.is_digit(10) || *c == '.')
+        .filter(|c| c.is_ascii_digit() || *c == '.')
         .collect();
     
     // Must be mostly digits
@@ -768,16 +804,12 @@ fn try_parse_compact(s: &str) -> Result<f64> {
 fn try_parse_dm(s: &str) -> Result<f64> {
     // Normalize the string
     let normalized = s
-        .replace('°', " ")
-        .replace('′', " ")
-        .replace('\'', " ")
-        .replace('d', " ")
-        .replace('m', " ")
+        .replace(['°', '′', '\'', 'd', 'm'], " ")
         .to_lowercase();
     
     // Split and clean parts
     let parts: Vec<&str> = normalized.split_whitespace()
-        .filter(|p| p.chars().any(|c| c.is_digit(10)))
+        .filter(|p| p.chars().any(|c| c.is_ascii_digit()))
         .collect();
     
     if parts.len() == 2 {

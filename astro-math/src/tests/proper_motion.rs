@@ -280,7 +280,7 @@ fn test_proper_motion_ra_wraparound_multiple() {
     let epoch = Utc.with_ymd_and_hms(2100, 1, 1, 0, 0, 0).unwrap();
     let (ra, _) = apply_proper_motion(ra_2000, dec_2000, pm_ra, pm_dec, epoch).unwrap();
     
-    assert!(ra >= 0.0 && ra < 360.0, "RA should be normalized after multiple wraps");
+    assert!((0.0..360.0).contains(&ra), "RA should be normalized after multiple wraps");
 }
 
 #[test]
@@ -313,5 +313,5 @@ fn test_proper_motion_rigorous_negative_ra() {
         ra_2000, dec_2000, pm_ra, pm_dec, parallax, rv, epoch
     ).unwrap();
     
-    assert!(ra >= 0.0 && ra < 360.0, "RA should be normalized from negative");
+    assert!((0.0..360.0).contains(&ra), "RA should be normalized from negative");
 }

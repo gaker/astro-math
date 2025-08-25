@@ -55,7 +55,7 @@ use crate::error::{Result, AstroError};
 /// }
 /// ```
 pub fn refraction_bennett(altitude_deg: f64) -> Result<f64> {
-    if altitude_deg < -90.0 || altitude_deg > 90.0 {
+    if !(-90.0..=90.0).contains(&altitude_deg) {
         return Err(AstroError::OutOfRange {
             parameter: "altitude",
             value: altitude_deg,
@@ -92,7 +92,7 @@ pub fn refraction_bennett(altitude_deg: f64) -> Result<f64> {
 /// # Errors
 /// Returns `Err(AstroError::OutOfRange)` if altitude is outside [-90, 90] degrees.
 pub fn refraction_saemundsson(altitude_deg: f64, pressure_hpa: f64, temperature_c: f64) -> Result<f64> {
-    if altitude_deg < -90.0 || altitude_deg > 90.0 {
+    if !(-90.0..=90.0).contains(&altitude_deg) {
         return Err(AstroError::OutOfRange {
             parameter: "altitude",
             value: altitude_deg,
@@ -139,7 +139,7 @@ pub fn refraction_radio(
     temperature_c: f64,
     humidity_percent: f64,
 ) -> Result<f64> {
-    if altitude_deg < -90.0 || altitude_deg > 90.0 {
+    if !(-90.0..=90.0).contains(&altitude_deg) {
         return Err(AstroError::OutOfRange {
             parameter: "altitude",
             value: altitude_deg,
@@ -148,7 +148,7 @@ pub fn refraction_radio(
         });
     }
     
-    if humidity_percent < 0.0 || humidity_percent > 100.0 {
+    if !(0.0..=100.0).contains(&humidity_percent) {
         return Err(AstroError::OutOfRange {
             parameter: "humidity_percent",
             value: humidity_percent,
@@ -226,7 +226,7 @@ pub fn true_to_apparent_altitude(
     pressure_hpa: f64,
     temperature_c: f64,
 ) -> Result<f64> {
-    if true_altitude_deg < -90.0 || true_altitude_deg > 90.0 {
+    if !(-90.0..=90.0).contains(&true_altitude_deg) {
         return Err(AstroError::OutOfRange {
             parameter: "altitude",
             value: true_altitude_deg,

@@ -318,6 +318,6 @@ fn test_precession_edge_case() {
     
     // Test RA near 360 that might wrap to negative in inverse precession
     let (ra, dec) = precess_to_j2000(359.9, 0.0, dt).unwrap();
-    assert!(ra >= 0.0 && ra < 360.0);
-    assert!(dec >= -90.0 && dec <= 90.0);
+    assert!((0.0..360.0).contains(&ra));
+    assert!((-90.0..=90.0).contains(&dec));
 }

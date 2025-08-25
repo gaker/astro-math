@@ -14,7 +14,7 @@ fn prompt_f64(prompt: &str) -> f64 {
 }
 
 fn main() {
-    println!("📡 Alt/Az Calculator (astro-math)");
+    println!("Alt/Az Calculator");
     println!("Enter observer location:");
 
     let latitude = prompt_f64("  Latitude (deg, +N/-S)");
@@ -36,9 +36,9 @@ fn main() {
     let lst = location.local_sidereal_time(now);
     let (alt, az) = ra_dec_to_alt_az(ra, dec, now, &location).unwrap();
 
-    println!("\n🕒 UTC Time       : {now}");
-    println!("📆 Julian Date   : {:.5}", jd);
-    println!("🧭 Sidereal Time : {:.5} hours", lst);
-    println!("🔭 Altitude      : {:.3}°", alt);
-    println!("🧭 Azimuth       : {:.3}°", az);
+    println!("\nUTC Time       : {now}");
+    println!(" Julian Date   : {:.5}", jd);
+    println!(" Sidereal Time : {:.5} hours", lst);
+    println!(" Altitude      : {:.3}°", alt);
+    println!(" Azimuth       : {:.3}°", az);
 }

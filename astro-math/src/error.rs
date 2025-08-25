@@ -162,7 +162,8 @@ pub fn validate_range(value: f64, min: f64, max: f64, parameter: &'static str) -
 /// ```
 #[inline]
 pub fn validate_ra(ra: f64) -> Result<()> {
-    if ra < 0.0 || ra >= 360.0 {
+    validate_finite(ra, "RA")?;
+    if !(0.0..360.0).contains(&ra) {
         Err(AstroError::InvalidCoordinate {
             coord_type: "RA",
             value: ra,
@@ -192,7 +193,8 @@ pub fn validate_ra(ra: f64) -> Result<()> {
 /// ```
 #[inline]
 pub fn validate_dec(dec: f64) -> Result<()> {
-    if dec < -90.0 || dec > 90.0 {
+    validate_finite(dec, "Declination")?;
+    if !(-90.0..=90.0).contains(&dec) {
         Err(AstroError::InvalidCoordinate {
             coord_type: "Declination",
             value: dec,
@@ -203,10 +205,36 @@ pub fn validate_dec(dec: f64) -> Result<()> {
     }
 }
 
+/// Validate that a floating point value is finite (not NaN or infinite)
+#[inline]
+pub fn validate_finite(value: f64, _parameter: &'static str) -> Result<()> {
+    if !value.is_finite() {
+        if value.is_nan() {
+            return Err(AstroError::CalculationError {
+                calculation: "numeric validation",
+                reason: "Value is NaN (Not a Number)".to_string(),
+            });
+        } else if value.is_infinite() {
+            return Err(AstroError::CalculationError {
+                calculation: "numeric validation", 
+                reason: format!("Value is infinite: {}", if value.is_sign_positive() { "+∞" } else { "-∞" }),
+            });
+        }
+    }
+    Ok(())
+}
+
+/// Comprehensive coordinate validation including finite check
+#[inline]
+pub fn validate_coordinate_safe(value: f64, min: f64, max: f64, parameter: &'static str) -> Result<()> {
+    validate_finite(value, parameter)?;
+    validate_range(value, min, max, parameter)
+}
+
 /// Validate latitude (-90 <= lat <= 90)
 #[inline]
 pub fn validate_latitude(lat: f64) -> Result<()> {
-    if lat < -90.0 || lat > 90.0 {
+    if !(-90.0..=90.0).contains(&lat) {
         Err(AstroError::InvalidCoordinate {
             coord_type: "Latitude",
             value: lat,
@@ -220,7 +248,7 @@ pub fn validate_latitude(lat: f64) -> Result<()> {
 /// Validate longitude (-180 <= lon <= 180)
 #[inline]
 pub fn validate_longitude(lon: f64) -> Result<()> {
-    if lon < -180.0 || lon > 180.0 {
+    if !(-180.0..=180.0).contains(&lon) {
         Err(AstroError::InvalidCoordinate {
             coord_type: "Longitude",
             value: lon,

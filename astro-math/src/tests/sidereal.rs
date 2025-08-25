@@ -45,7 +45,7 @@ fn test_local_mean_sidereal_time_wraps_positive() {
     // Pick a longitude that shifts GMST below 0 (e.g. -285°)
     let lst_val = local_mean_sidereal_time(jd, -285.0);
     assert!(
-        lst_val >= 0.0 && lst_val < 24.0,
+        (0.0..24.0).contains(&lst_val),
         "LST should wrap to [0, 24), got {}",
         lst_val
     );

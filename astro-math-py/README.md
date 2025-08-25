@@ -1,90 +1,134 @@
-# astro-math Python Bindings
+# astro-math
 
-High-performance astronomy calculations for Python, powered by Rust.
+Astronomy calculations in Python with Rust backend.
 
-## Installation
+## Install
 
 ```bash
 pip install astro-math
 ```
 
-## Features
+## What it does
 
-- **Fast batch operations** using NumPy arrays
-- **27+ coordinate format parsing** - handles any format users throw at it
-- **Zero-copy array operations** for maximum performance
-- **Type hints** for better IDE support
+- Time conversions (Julian dates, epochs)
+- Coordinate transforms (RA/Dec ↔ Alt/Az)
+- Location parsing (many coordinate formats)
+- Astrometric corrections (precession, nutation, aberration, proper motion)
+- Atmospheric refraction and airmass
+- Sun/Moon positions
+- Galactic coordinates
 
-## Quick Start
+Built on ERFA algorithms. Works with NumPy arrays.
+
+## Quick example
 
 ```python
-import astro_math
-import numpy as np
+from astro_math.transforms import ra_dec_to_alt_az
+from astro_math.location import Location
 from datetime import datetime
+import numpy as np
 
-# Single coordinate transformation
-alt, az = astro_math.ra_dec_to_alt_az(
-    ra=279.23,      # Vega
-    dec=38.78,
+# Single coordinate
+location = Location.parse("33.3563", "-116.8650", 1712.0)  # Palomar
+alt, az = ra_dec_to_alt_az(
+    ra=88.793, dec=7.407,  # Betelgeuse
     dt=datetime.utcnow(),
-    latitude=40.7,
-    longitude=-74.0
+    latitude=location.latitude_deg,
+    longitude=location.longitude_deg
 )
 
-# Batch operations with NumPy arrays (100-1000x faster than loops!)
-ra_array = np.array([279.23, 88.79, 213.91])  # Vega, Betelgeuse, Arcturus
-dec_array = np.array([38.78, 7.41, 19.18])
+# Arrays
+ra_array = np.array([88.793, 279.234, 213.915])  # Betelgeuse, Vega, Arcturus
+dec_array = np.array([7.407, 38.784, 19.182])
 
-alt_array, az_array = astro_math.ra_dec_to_alt_az_batch(
+alt_array, az_array = ra_dec_to_alt_az_batch(
     ra_array, dec_array,
     dt=datetime.utcnow(),
-    latitude=40.7,
-    longitude=-74.0
+    latitude=location.latitude_deg, 
+    longitude=location.longitude_deg
 )
-
-# Parse any coordinate format
-lat, lon, alt = astro_math.parse_location(
-    "40°42'46\"N",     # or "40.7128", "40:42:46", "404246N", etc.
-    "74°0'21.6\"W"     # or "-74.006", "74:00:21.6W", etc.
-)
-
-# Use Location objects
-location = astro_math.Location.parse(
-    "40°42'46\"N",
-    "74°0'21.6\"W",
-    altitude=10.0
-)
-print(location.latitude_dms())   # "40°42'46.0\"N"
-print(location.longitude_dms())  # "74°00'21.6\"W"
 ```
 
-## Performance
+## More examples
 
-Batch operations are typically 100-1000x faster than Python loops:
+### Time conversions
 
 ```python
-# Slow: Python loop
-alts = []
-azs = []
-for ra, dec in zip(ra_list, dec_list):
-    alt, az = astro_math.ra_dec_to_alt_az(ra, dec, dt, lat, lon)
-    alts.append(alt)
-    azs.append(az)
+from astro_math.time import julian, j2000
+from datetime import datetime
 
-# Fast: Batch operation
-alt_array, az_array = astro_math.ra_dec_to_alt_az_batch(
-    np.array(ra_list), np.array(dec_list), dt, lat, lon
+dt = datetime(2024, 12, 21, 6, 30, 0)
+jd = julian(dt)
+days_since_j2000 = j2000(dt)
+```
+
+### Proper motion
+
+```python
+from astro_math.proper_motion import apply_proper_motion
+
+# Barnard's Star
+ra_j2000, dec_j2000 = 269.45, 4.66
+pm_ra, pm_dec = -798.6, 10328.1  # mas/year
+
+ra_2024, dec_2024 = apply_proper_motion(
+    ra_j2000, dec_j2000, pm_ra, pm_dec,
+    epoch_from=2000.0, epoch_to=2024.5
 )
 ```
 
-## API Reference
+### Atmospheric corrections
 
-See the [main astro-math documentation](https://github.com/gaker/astro-math) for detailed API information.
+```python
+from astro_math.refraction import bennett, saemundsson
+from astro_math.airmass import young
+
+true_alt = 30.0
+apparent_alt = bennett(true_alt)
+refraction = apparent_alt - true_alt
+
+# With atmospheric conditions
+precise_alt = saemundsson(true_alt, pressure_hpa=617.0, temperature_c=-5.0)
+airmass = young(apparent_alt)
+```
+
+### Galactic coordinates
+
+```python
+from astro_math.galactic import equatorial_to_galactic
+
+gal_l, gal_b = equatorial_to_galactic(266.405, -28.936)  # Galactic center
+```
+
+### Catalog processing
+
+```python
+import numpy as np
+
+# Process whole catalog at once
+ra_catalog = np.array([88.793, 279.234, 213.915, 310.358])
+dec_catalog = np.array([7.407, 38.784, 19.182, 45.280])
+
+alt_catalog, az_catalog = ra_dec_to_alt_az_batch(
+    ra_catalog, dec_catalog,
+    dt=datetime.utcnow(),
+    latitude=40.7, longitude=-74.0
+)
+
+# Find visible objects
+visible = alt_catalog > 20.0
+names = ["Betelgeuse", "Vega", "Arcturus", "Deneb"]
+for i, name in enumerate(names):
+    if visible[i]:
+        print(f"{name}: {alt_catalog[i]:.1f}°, {az_catalog[i]:.1f}°")
+```
+
+## Documentation
+
+Full API docs: https://astro-math.readthedocs.io/
 
 ## License
 
-Licensed under either of:
-- MIT license
-- Apache License, Version 2.0
+MIT or Apache-2.0
 
 at your option.

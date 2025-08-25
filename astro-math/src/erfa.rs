@@ -49,6 +49,7 @@ use crate::error::{AstroError, Result};
 /// # Returns
 ///
 /// * `Result<(f64, f64, f64, f64, f64, f64)>` - (azimuth, zenith distance, hour angle, declination, RA, declination) all in radians
+#[allow(clippy::too_many_arguments)]
 pub fn icrs_to_observed(
     ra_icrs: f64,
     dec_icrs: f64,
@@ -100,6 +101,7 @@ pub fn icrs_to_observed(
 /// # Returns
 ///
 /// * `Result<(f64, f64, f64)>` - (RA, Dec, equation of origins) in radians
+#[allow(clippy::too_many_arguments)]
 pub fn icrs_to_cirs(
     ra_icrs: f64,
     dec_icrs: f64,
@@ -140,6 +142,7 @@ pub fn icrs_to_cirs(
 /// # Returns
 ///
 /// * `Result<(f64, f64, f64, f64, f64, f64)>` - (azimuth, zenith distance, hour angle, declination, RA, declination) in radians
+#[allow(clippy::too_many_arguments)]
 pub fn cirs_to_observed(
     ri: f64,
     di: f64,

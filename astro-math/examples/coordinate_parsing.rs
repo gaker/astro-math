@@ -1,7 +1,7 @@
 use astro_math::location::Location;
 
 fn main() {
-    println!("Astro-Math: Ultimate Coordinate Parsing Demo\n");
+    println!("Astro-Math: Coordinate Parsing Demo\n");
     
     let examples = vec![
         // Decimal degrees
@@ -68,7 +68,7 @@ fn main() {
         }
     }
     
-    println!("🎯 Demonstrating error handling:");
+    println!("Error handling:");
     
     let error_examples = vec![
         ("91.0", "0.0", "Latitude out of range"),
@@ -89,13 +89,4 @@ fn main() {
             }
         }
     }
-    
-    println!("The astro-math coordinate parser handles virtually any format!");
-    println!("   - Decimal degrees with optional compass directions");
-    println!("   - DMS in any separator style (space, colon, dash, symbols)");
-    println!("   - HMS format for longitude coordinates");
-    println!("   - Compact aviation/marine formats (DDMMSS, DDMM.mmm)");
-    println!("   - Mixed formats and fuzzy matching");
-    println!("   - Unicode symbols and spelled-out directions");
-    println!("   - Comprehensive validation and helpful error messages");
 }

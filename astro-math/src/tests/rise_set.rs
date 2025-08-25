@@ -19,7 +19,7 @@ fn test_equatorial_object() {
     
     // Should be approximately 12 hours from rise to set
     let duration = (set - rise).num_hours();
-    assert!(duration >= 11 && duration <= 13, 
+    assert!((11..=13).contains(&duration), 
         "Equatorial object should be up ~12 hours, got {}", duration);
     
     // Transit should be roughly halfway between rise and set
@@ -131,7 +131,7 @@ fn test_rise_set_wraparound() {
     
     // Duration should still make sense for Dec=30° at lat=45°
     let duration_hours = (set - rise).num_hours();
-    assert!(duration_hours >= 6 && duration_hours < 18,
+    assert!((6..18).contains(&duration_hours),
         "Object at Dec=30° should be up 6-18 hours at lat=45°, got {} hours", duration_hours);
 }
 
@@ -180,7 +180,7 @@ fn test_rise_set_edge_cases() {
     let (rise, transit, set) = result.unwrap();
     // At 45° latitude, celestial equator objects should be up ~12 hours
     let duration = (set - rise).num_hours();
-    assert!(duration >= 11 && duration <= 13,
+    assert!((11..=13).contains(&duration),
         "Celestial equator object should be visible ~12 hours at 45° lat, got {} hours", duration);
     
     // RA 180° should transit around midnight local time

@@ -78,10 +78,10 @@ fn test_parallax_normalization() {
     
     // Test with RA near 0/360 boundary
     let (ra1, _) = diurnal_parallax(359.9, 45.0, 0.1, dt, &location).unwrap();
-    assert!(ra1 >= 0.0 && ra1 < 360.0);
+    assert!((0.0..360.0).contains(&ra1));
     
     let (ra2, _) = diurnal_parallax(0.1, 45.0, 0.1, dt, &location).unwrap();
-    assert!(ra2 >= 0.0 && ra2 < 360.0);
+    assert!((0.0..360.0).contains(&ra2));
 }
 
 #[test]
@@ -96,7 +96,7 @@ fn test_parallax_ra_else_branch() {
     
     // Test with RA that doesn't need normalization
     let (ra, _) = diurnal_parallax(180.0, 0.0, 1.0, dt, &location).unwrap();
-    assert!(ra >= 0.0 && ra < 360.0);
+    assert!((0.0..360.0).contains(&ra));
 }
 
 #[test]
@@ -105,10 +105,10 @@ fn test_annual_parallax_normalization() {
     
     // Test RA values near boundaries that could trigger normalization
     let (ra_norm, _) = annual_parallax(359.99, 0.0, 0.001, dt).unwrap();
-    assert!(ra_norm >= 0.0 && ra_norm < 360.0);
+    assert!((0.0..360.0).contains(&ra_norm));
     
     let (ra_norm, _) = annual_parallax(0.01, 0.0, 0.001, dt).unwrap();
-    assert!(ra_norm >= 0.0 && ra_norm < 360.0);
+    assert!((0.0..360.0).contains(&ra_norm));
 }
 
 #[test]
@@ -118,9 +118,9 @@ fn test_annual_parallax_wraparound_branches() {
     
     // Test case that results in negative RA needing wrap to positive
     let (ra, _) = annual_parallax(0.001, 0.0, 100.0, dt).unwrap();
-    assert!(ra >= 0.0 && ra < 360.0, "RA should be normalized after negative correction");
+    assert!((0.0..360.0).contains(&ra), "RA should be normalized after negative correction");
     
     // Test case that results in RA > 360 needing wrap
     let (ra, _) = annual_parallax(359.999, 0.0, 100.0, dt).unwrap();
-    assert!(ra >= 0.0 && ra < 360.0, "RA should be normalized after exceeding 360");
+    assert!((0.0..360.0).contains(&ra), "RA should be normalized after exceeding 360");
 }

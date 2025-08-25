@@ -10,7 +10,7 @@ use chrono::{DateTime, TimeZone, Utc};
 /// from the standard J2000.0 epoch to any other date.
 #[pyfunction]
 #[pyo3(signature = (ra_j2000, dec_j2000, datetime))]
-fn precess_j2000_to_date(
+fn j2000_to_date(
     ra_j2000: f64,
     dec_j2000: f64,
     datetime: &Bound<'_, PyDateTime>,
@@ -27,7 +27,7 @@ fn precess_j2000_to_date(
 /// from any date back to the standard J2000.0 epoch.
 #[pyfunction]
 #[pyo3(signature = (ra, dec, datetime))]
-fn precess_to_j2000(
+fn to_j2000(
     ra: f64,
     dec: f64,
     datetime: &Bound<'_, PyDateTime>,
@@ -43,7 +43,7 @@ fn precess_to_j2000(
 /// Efficiently processes multiple coordinate pairs using parallel computation.
 #[pyfunction]
 #[pyo3(signature = (ra_array, dec_array, datetime))]
-fn batch_precess_j2000_to_date<'py>(
+fn batch_j2000_to_date<'py>(
     py: Python<'py>,
     ra_array: PyReadonlyArray1<'_, f64>,
     dec_array: PyReadonlyArray1<'_, f64>,
@@ -102,7 +102,7 @@ fn batch_precess_j2000_to_date<'py>(
 /// Batch convert coordinates from a specified date to J2000.0.
 #[pyfunction]
 #[pyo3(signature = (ra_array, dec_array, datetime))]
-fn batch_precess_to_j2000<'py>(
+fn batch_to_j2000<'py>(
     py: Python<'py>,
     ra_array: PyReadonlyArray1<'_, f64>,
     dec_array: PyReadonlyArray1<'_, f64>,
@@ -184,9 +184,9 @@ fn datetime_from_py(dt: &Bound<'_, PyDateTime>) -> PyResult<DateTime<Utc>> {
 
 /// Register the precession module with Python
 pub fn register(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(precess_j2000_to_date, m)?)?;
-    m.add_function(wrap_pyfunction!(precess_to_j2000, m)?)?;
-    m.add_function(wrap_pyfunction!(batch_precess_j2000_to_date, m)?)?;
-    m.add_function(wrap_pyfunction!(batch_precess_to_j2000, m)?)?;
+    m.add_function(wrap_pyfunction!(j2000_to_date, m)?)?;
+    m.add_function(wrap_pyfunction!(to_j2000, m)?)?;
+    m.add_function(wrap_pyfunction!(batch_j2000_to_date, m)?)?;
+    m.add_function(wrap_pyfunction!(batch_to_j2000, m)?)?;
     Ok(())
 }

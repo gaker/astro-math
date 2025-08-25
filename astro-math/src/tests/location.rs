@@ -202,7 +202,7 @@ fn test_parse_valid_dms_strings() {
 
     for case in cases {
         let result = Location::from_dms(case[0], case[1], 0.0);
-        assert!(!result.is_err());
+        assert!(result.is_ok());
         let loc = result.unwrap();
         assert!((loc.latitude_deg - 39.0004722).abs() < 1e-6);
 

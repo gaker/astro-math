@@ -10,7 +10,7 @@ use chrono::{DateTime, TimeZone, Utc};
 /// Earth's orbital motion around the Sun (up to 20.5 arcseconds).
 #[pyfunction]
 #[pyo3(signature = (ra_j2000, dec_j2000, datetime))]
-fn apply_aberration(
+fn apply(
     ra_j2000: f64,
     dec_j2000: f64,
     datetime: &Bound<'_, PyDateTime>,
@@ -26,7 +26,7 @@ fn apply_aberration(
 /// Converts apparent positions back to true geometric positions.
 #[pyfunction]
 #[pyo3(signature = (ra_apparent, dec_apparent, datetime))]
-fn remove_aberration(
+fn remove(
     ra_apparent: f64,
     dec_apparent: f64,
     datetime: &Bound<'_, PyDateTime>,
@@ -42,7 +42,7 @@ fn remove_aberration(
 /// Returns the magnitude of the aberration displacement in arcseconds.
 #[pyfunction]
 #[pyo3(signature = (ra, dec, datetime))]
-fn aberration_magnitude(
+fn magnitude(
     ra: f64,
     dec: f64,
     datetime: &Bound<'_, PyDateTime>,
@@ -58,7 +58,7 @@ fn aberration_magnitude(
 /// Efficiently processes multiple coordinate pairs using parallel computation.
 #[pyfunction]
 #[pyo3(signature = (ra_array, dec_array, datetime))]
-fn batch_aberration<'py>(
+fn batch<'py>(
     py: Python<'py>,
     ra_array: PyReadonlyArray1<'_, f64>,
     dec_array: PyReadonlyArray1<'_, f64>,
@@ -140,9 +140,9 @@ fn datetime_from_py(dt: &Bound<'_, PyDateTime>) -> PyResult<DateTime<Utc>> {
 
 /// Register the aberration module with Python
 pub fn register(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(apply_aberration, m)?)?;
-    m.add_function(wrap_pyfunction!(remove_aberration, m)?)?;
-    m.add_function(wrap_pyfunction!(aberration_magnitude, m)?)?;
-    m.add_function(wrap_pyfunction!(batch_aberration, m)?)?;
+    m.add_function(wrap_pyfunction!(apply, m)?)?;
+    m.add_function(wrap_pyfunction!(remove, m)?)?;
+    m.add_function(wrap_pyfunction!(magnitude, m)?)?;
+    m.add_function(wrap_pyfunction!(batch, m)?)?;
     Ok(())
 }

@@ -107,7 +107,8 @@ pub fn apply_aberration(
     // Get Julian Date
     let jd_utc = julian_date(date);
     // Approximate TT (ignoring leap seconds for now)
-    let jd_tt = jd_utc + 69.184 / 86400.0;
+    use crate::time_scales::utc_to_tt_jd;
+    let jd_tt = utc_to_tt_jd(jd_utc);
     
     // Use ERFA's Atci13 to get position with aberration 
     // Set proper motion and parallax to zero to isolate aberration
@@ -185,7 +186,8 @@ pub fn remove_aberration(
     
     // Get Julian Date
     let jd_utc = julian_date(date);
-    let jd_tt = jd_utc + 69.184 / 86400.0;
+    use crate::time_scales::utc_to_tt_jd;
+    let jd_tt = utc_to_tt_jd(jd_utc);
     
     // Use ERFA's inverse transformation (CIRS to ICRS)
     // This is the inverse of Atci13 - we use Atic13

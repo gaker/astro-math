@@ -4,10 +4,28 @@ use pyo3::types::{PyDateTime, PyDateAccess, PyTimeAccess};
 use astro_math::time;
 use chrono::{DateTime, TimeZone, Utc};
 
-/// Convert a datetime to Julian Date
+/// Convert a datetime to Julian Date.
+/// 
+/// Parameters
+/// ----------
+/// dt : datetime
+///     UTC datetime to convert
+/// 
+/// Returns
+/// -------
+/// float
+///     Julian Date
+/// 
+/// Examples
+/// --------
+/// >>> from astro_math.time import julian
+/// >>> from datetime import datetime
+/// >>> jd = julian(datetime(2000, 1, 1, 12, 0, 0))
+/// >>> print(f"{jd:.1f}")
+/// 2451545.0
 #[pyfunction]
 #[pyo3(signature = (dt))]
-fn julian_date(dt: &Bound<'_, PyDateTime>) -> PyResult<f64> {
+fn julian(dt: &Bound<'_, PyDateTime>) -> PyResult<f64> {
     let datetime = datetime_from_py(dt)?;
     Ok(time::julian_date(datetime))
 }
@@ -15,7 +33,7 @@ fn julian_date(dt: &Bound<'_, PyDateTime>) -> PyResult<f64> {
 /// Batch convert datetimes to Julian Dates
 #[pyfunction]
 #[pyo3(signature = (dts))]
-fn julian_date_batch<'py>(
+fn julian_batch<'py>(
     py: Python<'py>,
     dts: Vec<Bound<'py, PyDateTime>>,
 ) -> PyResult<Bound<'py, PyArray1<f64>>> {
@@ -30,10 +48,28 @@ fn julian_date_batch<'py>(
     Ok(jds.into_pyarray_bound(py))
 }
 
-/// Convert a datetime to days since J2000.0
+/// Convert a datetime to days since J2000.0.
+/// 
+/// Parameters
+/// ----------
+/// dt : datetime
+///     UTC datetime to convert
+/// 
+/// Returns
+/// -------
+/// float
+///     Days since J2000.0 epoch (January 1, 2000, 12:00 UTC)
+/// 
+/// Examples
+/// --------
+/// >>> from astro_math.time import j2000
+/// >>> from datetime import datetime
+/// >>> days = j2000(datetime(2000, 1, 1, 12, 0, 0))
+/// >>> print(f"{days:.1f}")
+/// 0.0
 #[pyfunction]
 #[pyo3(signature = (dt))]
-fn j2000_days(dt: &Bound<'_, PyDateTime>) -> PyResult<f64> {
+fn j2000(dt: &Bound<'_, PyDateTime>) -> PyResult<f64> {
     let datetime = datetime_from_py(dt)?;
     Ok(time::j2000_days(datetime))
 }
@@ -41,7 +77,7 @@ fn j2000_days(dt: &Bound<'_, PyDateTime>) -> PyResult<f64> {
 /// Batch convert datetimes to days since J2000.0
 #[pyfunction]
 #[pyo3(signature = (dts))]
-fn j2000_days_batch<'py>(
+fn j2000_batch<'py>(
     py: Python<'py>,
     dts: Vec<Bound<'py, PyDateTime>>,
 ) -> PyResult<Bound<'py, PyArray1<f64>>> {
@@ -73,10 +109,10 @@ fn datetime_from_py(dt: &Bound<'_, PyDateTime>) -> PyResult<DateTime<Utc>> {
 }
 
 pub fn register(m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_function(wrap_pyfunction!(julian_date, m)?)?;
-    m.add_function(wrap_pyfunction!(julian_date_batch, m)?)?;
-    m.add_function(wrap_pyfunction!(j2000_days, m)?)?;
-    m.add_function(wrap_pyfunction!(j2000_days_batch, m)?)?;
+    m.add_function(wrap_pyfunction!(julian, m)?)?;
+    m.add_function(wrap_pyfunction!(julian_batch, m)?)?;
+    m.add_function(wrap_pyfunction!(j2000, m)?)?;
+    m.add_function(wrap_pyfunction!(j2000_batch, m)?)?;
     Ok(())
 }
 

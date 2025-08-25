@@ -112,8 +112,8 @@ fn main() {
     let motion_arcsec = ((ra_now - vega_ra).powi(2) + (dec_now - vega_dec).powi(2)).sqrt() * 3600.0;
     
     if motion_arcsec > fov_arcsec / 2.0 {
-        println!("   ⚠️  Vega has moved {:.1}\" - outside a {}\" FOV!", motion_arcsec, fov_arcsec);
+        println!("    Vega has moved {:.1}\" - outside a {}\" FOV!", motion_arcsec, fov_arcsec);
     } else {
-        println!("   ✓  Vega has moved {:.1}\" - still within a {}\" FOV", motion_arcsec, fov_arcsec);
+        println!("    Vega has moved {:.1}\" - still within a {}\" FOV", motion_arcsec, fov_arcsec);
     }
 }

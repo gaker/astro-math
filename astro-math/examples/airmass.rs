@@ -78,14 +78,4 @@ fn main() {
         println!("{} | {:7.1}° | {:7.3} | {:16.3} mag | {:16.3} mag",
             times[i], alt, am, extinction, mag_loss);
     }
-
-    // Example 5: Planning observations
-    println!("\nPlanning Guide - Maximum Airmass for Different Science Cases:");
-    println!("Science Case          | Max Airmass | Min Altitude | Notes");
-    println!("----------------------|-------------|--------------|-------");
-    println!("Photometry (precise)  | 1.5         | 42°          | Minimize extinction");
-    println!("Spectroscopy (blue)   | 1.3         | 50°          | Blue sensitive");
-    println!("Spectroscopy (red)    | 2.0         | 30°          | Less extinction");
-    println!("Survey/discovery      | 2.5         | 24°          | Max sky coverage");
-    println!("Near-horizon monitor  | 3.0         | 20°          | Special programs");
 }

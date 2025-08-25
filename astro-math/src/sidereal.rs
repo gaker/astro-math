@@ -75,9 +75,10 @@ pub fn gmst(jd: f64) -> f64 {
     let jd1 = jd;
     let jd2 = 0.0;
     
-    // Approximate TT (ignoring leap seconds for now)
-    let tt1 = jd1 + 69.184 / 86400.0;
-    let tt2 = jd2;
+    // Convert UTC to TT using proper time scale conversion
+    use crate::time_scales::{utc_to_tt_jd, split_jd_for_erfa};
+    let jd_tt = utc_to_tt_jd(jd);
+    let (tt1, tt2) = split_jd_for_erfa(jd_tt);
     
     // Use ERFA's GMST function (IAU 2006)
     let gmst_rad = erfa::greenwich_mean_sidereal_time(jd1, jd2, tt1, tt2);
@@ -188,9 +189,10 @@ pub fn apparent_sidereal_time(jd: f64, longitude_deg: f64) -> f64 {
     let jd1 = jd;
     let jd2 = 0.0;
     
-    // Approximate TT (ignoring leap seconds for now)
-    let tt1 = jd1 + 69.184 / 86400.0;
-    let tt2 = jd2;
+    // Convert UTC to TT using proper time scale conversion
+    use crate::time_scales::{utc_to_tt_jd, split_jd_for_erfa};
+    let jd_tt = utc_to_tt_jd(jd);
+    let (tt1, tt2) = split_jd_for_erfa(jd_tt);
     
     // Use ERFA's Greenwich Apparent Sidereal Time (includes nutation)
     let gast_rad = erfa::greenwich_apparent_sidereal_time(jd1, jd2, tt1, tt2);

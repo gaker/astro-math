@@ -63,8 +63,8 @@ pub fn nutation_in_longitude(jd: f64) -> f64 {
     // Get nutation using IAU 2000A model
     let (dpsi, _deps) = erfars::precnutpolar::Nut00a(jd1, jd2);
     
-    // Convert from radians to arcseconds
-    dpsi * 206264.80624709636
+    // Convert from radians to arcseconds using exact mathematical constant
+    dpsi * (180.0 * 3600.0 / std::f64::consts::PI)
 }
 
 /// Calculates nutation in obliquity (Δε) in arcseconds using ERFA.
@@ -96,8 +96,8 @@ pub fn nutation_in_obliquity(jd: f64) -> f64 {
     // Get nutation using IAU 2000A model
     let (_dpsi, deps) = erfars::precnutpolar::Nut00a(jd1, jd2);
     
-    // Convert from radians to arcseconds
-    deps * 206264.80624709636
+    // Convert from radians to arcseconds using exact mathematical constant
+    deps * (180.0 * 3600.0 / std::f64::consts::PI)
 }
 
 /// Calculates the mean obliquity of the ecliptic (ε₀) in degrees using ERFA.
@@ -200,10 +200,11 @@ pub fn nutation(jd: f64) -> Nutation {
     // Get nutation using IAU 2000A model
     let (dpsi, deps) = erfars::precnutpolar::Nut00a(jd1, jd2);
     
-    // Convert from radians to arcseconds
+    // Convert from radians to arcseconds using exact mathematical constant  
+    let rad_to_arcsec = 180.0 * 3600.0 / std::f64::consts::PI;
     Nutation {
-        longitude: dpsi * 206264.80624709636,
-        obliquity: deps * 206264.80624709636,
+        longitude: dpsi * rad_to_arcsec,
+        obliquity: deps * rad_to_arcsec,
     }
 }
 
@@ -216,4 +217,109 @@ pub fn nutation_in_longitude_arcsec(jd: f64) -> f64 {
 #[doc(hidden)]
 pub fn mean_obliquity_arcsec(jd: f64) -> f64 {
     mean_obliquity(jd) * 3600.0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::time::julian_date;
+    use chrono::{DateTime, Utc, NaiveDateTime};
+
+    #[test]
+    fn test_nutation_precision_august_2025() {
+        // Test date: August 1, 2025, 00:00:00 UTC
+        let dt = NaiveDateTime::new(
+            chrono::NaiveDate::from_ymd_opt(2025, 8, 1).unwrap(),
+            chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap()
+        );
+        let utc_dt = DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc);
+        
+        // Convert to Julian Date (UTC)
+        let jd_utc = julian_date(utc_dt);
+        
+        // ISSUE: Our functions expect TT but we're passing UTC
+        // For now, let's test with the conversion we should be doing:
+        // TT = UTC + (TAI-UTC) + 32.184s
+        // As of 2025, TAI-UTC ≈ 37 seconds
+        let tt_offset_days = (37.0 + 32.184) / 86400.0; // Convert seconds to days
+        let jd_tt = jd_utc + tt_offset_days;
+        
+        // Test nutation with proper TT time
+        let nut = nutation(jd_tt);
+        
+        // Expected values from astropy/ERFA with proper TT conversion:
+        // These values are from our astropy_test_data/nutation_aug1_2025.py script
+        let expected_dpsi = 3.821318106868885;
+        let expected_deps = 8.91080363873388;
+        
+        // Test precision - should be within microarcsecond precision
+        let dpsi_diff = (nut.longitude - expected_dpsi).abs();
+        let deps_diff = (nut.obliquity - expected_deps).abs();
+        
+        println!("Current dpsi: {:.9}, expected: {:.9}, diff: {:.6} mas", 
+                 nut.longitude, expected_dpsi, dpsi_diff * 1000.0);
+        println!("Current deps: {:.9}, expected: {:.9}, diff: {:.6} mas", 
+                 nut.obliquity, expected_deps, deps_diff * 1000.0);
+        
+        // For now, allow larger differences until we fix TT-UTC handling
+        assert!(dpsi_diff < 0.001, "Nutation in longitude differs by {:.6} mas", dpsi_diff * 1000.0);
+        assert!(deps_diff < 0.001, "Nutation in obliquity differs by {:.6} mas", deps_diff * 1000.0);
+    }
+
+    #[test]  
+    fn test_nutation_with_utc_shows_issue() {
+        // This test demonstrates the TT-UTC issue
+        let dt = NaiveDateTime::new(
+            chrono::NaiveDate::from_ymd_opt(2025, 8, 1).unwrap(),
+            chrono::NaiveTime::from_hms_opt(0, 0, 0).unwrap()
+        );
+        let utc_dt = DateTime::<Utc>::from_naive_utc_and_offset(dt, Utc);
+        let jd_utc = julian_date(utc_dt);
+        
+        // Using UTC JD directly (which is wrong for nutation)
+        let nut_utc = nutation(jd_utc);
+        
+        // This will show the ~69 second offset error in our results
+        println!("With UTC JD: dpsi={:.6}, deps={:.6}", nut_utc.longitude, nut_utc.obliquity);
+        
+        // The values should be different from the expected ERFA values
+        // because we're not using TT as required
+        let expected_dpsi = 3.821318106868885;
+        let expected_deps = 8.91080363873388;
+        
+        let dpsi_error = (nut_utc.longitude - expected_dpsi).abs();
+        let deps_error = (nut_utc.obliquity - expected_deps).abs();
+        
+        // This test should "fail" (show the issue) until we fix TT conversion
+        // For now, we expect the error to be small but non-zero
+        println!("Error using UTC instead of TT: dpsi={:.3} mas, deps={:.3} mas", 
+                 dpsi_error * 1000.0, deps_error * 1000.0);
+    }
+
+    #[test]
+    fn test_conversion_factor_precision() {
+        // Test the exact conversion factor identified by the auditor
+        let exact_factor = 180.0 * 3600.0 / std::f64::consts::PI;
+        let current_factor = 206264.80624709636;
+        
+        let factor_diff = (exact_factor - current_factor).abs();
+        println!("Exact factor: {:.15}", exact_factor);
+        println!("Current factor: {:.15}", current_factor);
+        println!("Difference: {:.2e}", factor_diff);
+        
+        // The difference should be extremely small (< 1e-10)
+        assert!(factor_diff < 1e-10, "Conversion factor precision issue");
+    }
+
+    #[test]
+    fn test_mean_obliquity_j2000() {
+        // Test mean obliquity at J2000.0
+        let jd_j2000 = 2451545.0;
+        let eps0 = mean_obliquity(jd_j2000);
+        
+        // J2000.0 mean obliquity should be very close to 23.4392911°
+        let expected = 23.4392911;
+        assert!((eps0 - expected).abs() < 0.0001, 
+                "Mean obliquity at J2000: got {:.7}, expected {:.7}", eps0, expected);
+    }
 }

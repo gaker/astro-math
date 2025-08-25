@@ -20,11 +20,37 @@
 //! - `AstroError::InvalidCoordinate` for out-of-range RA or Dec values
 
 use crate::location::Location;
-use crate::error::{Result, validate_ra, validate_dec};
+use crate::error::{Result, validate_ra, validate_dec, validate_finite};
 use crate::time::julian_date;
 use chrono::{DateTime, Utc};
 use std::f64::consts::PI;
 use rayon::prelude::*;
+
+/// Sanitize coordinate transformation results to prevent NaN/Infinity propagation
+#[inline]
+fn sanitize_alt_az_result(alt: f64, az: f64) -> Result<(f64, f64)> {
+    validate_finite(alt, "altitude")?;
+    validate_finite(az, "azimuth")?;
+    
+    // Clamp altitude to valid range and normalize azimuth
+    let alt_clamped = alt.clamp(-90.0, 90.0);
+    let az_normalized = az.rem_euclid(360.0);
+    
+    Ok((alt_clamped, az_normalized))
+}
+
+/// Sanitize RA/Dec transformation results 
+#[inline]
+fn sanitize_ra_dec_result(ra: f64, dec: f64) -> Result<(f64, f64)> {
+    validate_finite(ra, "RA")?;
+    validate_finite(dec, "declination")?;
+    
+    // Normalize RA and clamp Dec
+    let ra_normalized = ra.rem_euclid(360.0);
+    let dec_clamped = dec.clamp(-90.0, 90.0);
+    
+    Ok((ra_normalized, dec_clamped))
+}
 
 /// Converts equatorial coordinates (RA/DEC) to horizontal coordinates (Altitude/Azimuth)
 /// for a given UTC time and observer location.
@@ -162,7 +188,7 @@ pub fn ra_dec_to_alt_az(
         az
     };
 
-    Ok((alt_deg, az_deg))
+    sanitize_alt_az_result(alt_deg, az_deg)
 }
 
 /// Converts ICRS equatorial coordinates to horizontal coordinates using ERFA.
@@ -255,7 +281,7 @@ pub fn ra_dec_to_alt_az_erfa(
                 az_deg -= 360.0;
             }
             
-            Ok((alt_deg, az_deg))
+            sanitize_alt_az_result(alt_deg, az_deg)
         }
         Err(_) => {
             // Fall back to the original method if ERFA fails
@@ -423,7 +449,7 @@ pub fn alt_az_to_ra_dec(
     observer: &Location,
 ) -> Result<(f64, f64)> {
     // Validate inputs
-    if altitude_deg < -90.0 || altitude_deg > 90.0 {
+    if !(-90.0..=90.0).contains(&altitude_deg) {
         return Err(crate::error::AstroError::InvalidCoordinate {
             coord_type: "Altitude",
             value: altitude_deg,
@@ -431,7 +457,7 @@ pub fn alt_az_to_ra_dec(
         });
     }
     
-    if azimuth_deg < 0.0 || azimuth_deg >= 360.0 {
+    if !(0.0..360.0).contains(&azimuth_deg) {
         return Err(crate::error::AstroError::InvalidCoordinate {
             coord_type: "Azimuth", 
             value: azimuth_deg,
@@ -463,7 +489,7 @@ pub fn alt_az_to_ra_dec(
         // Use a reasonable default based on azimuth
         let lst_hours = observer.local_sidereal_time(datetime);
         let ra_deg = (lst_hours * 15.0) % 360.0;
-        return Ok((ra_deg, dec_deg));
+        return sanitize_ra_dec_result(ra_deg, dec_deg);
     }
     
     // cos(HA) = (sin(Alt) - sin(Dec)·sin(Lat)) / (cos(Dec)·cos(Lat))
@@ -501,7 +527,7 @@ pub fn alt_az_to_ra_dec(
     // Convert to degrees
     let ra_deg = ra_hours * 15.0;
     
-    Ok((ra_deg, dec_deg))
+    sanitize_ra_dec_result(ra_deg, dec_deg)
 }
 
 // Note: ERFA does not provide a direct single-function inverse transformation
