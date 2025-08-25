@@ -3,7 +3,7 @@ members = ["astro-math", "astro-math-py"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 authors = ["@gaker"]
 edition = "2021"
 license = "MIT OR Apache-2.0"
