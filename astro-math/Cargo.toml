@@ -5,7 +5,6 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-readme = "README.md"
 description = "Astronomy math algorithms for telescope control and sky transforms"
 keywords = ["astronomy", "astrometry", "sidereal", "astrophysics", "coordinates"]
 categories = ["science", "aerospace", "data-structures"]
